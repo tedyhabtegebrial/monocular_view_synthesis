@@ -5,7 +5,6 @@
 PyTorch:
       torch>=1.4.0
 
-
 #### Usage
 
 #### Set up a configuration dictionary
@@ -18,6 +17,14 @@ configs['batch_size'] = 1
 configs['num_planes'] = 64 # number of planes to represent the scene geometry
 configs['near_plane'] = 5  # the closest plane in meters
 configs['far_plane'] = 10000 # the farthest plane, in meters
+# This controls the size of the Encoder Decoder backend
+configs['encoder_features'] = 32
+# This controls the size of the prediction head
+configs['encoder_ouput_features'] = 64
+# here we specify the number of channels in the input and output images
+configs['input_channels'] = 3
+configs['out_put_channels'] = 3
+
 ```
 #### Create an instance of StereoMagnification class with the configs dictionary
 
