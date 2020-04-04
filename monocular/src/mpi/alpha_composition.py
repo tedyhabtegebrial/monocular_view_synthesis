@@ -1,3 +1,10 @@
+"""
+copyright:
+author: "Tewodros Amberbir Habtegebrial"
+license: "MIT"
+email: "tedyhabtegebrial@gmail.com"
+"""
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F

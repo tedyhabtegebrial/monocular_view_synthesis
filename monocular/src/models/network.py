@@ -70,25 +70,25 @@ class ConvNetwork(torch.nn.Module):
         input_channels = 3
         num_planes = configs['num_planes']
         enc_features = configs['encoder_features']
+        encoder_ouput_features = configs['encoder_ouput_features']
         self.input_channels = input_channels
         self.num_planes = num_planes
         # if output contains color
         self.blending_w_chans = 1
         self.out_bg_chans = 3
         use_no_relu = True
-        self.discriptor_net = BaseEncoderDecoder(input_channels)
-        # self.discriptor_net = BaseEncoderDecoder(input_channels)
+        self.discriptor_net = BaseEncoderDecoder(in_chans=configs['input_channels'], feat_size=enc_features, output_feats=encoder_ouput_features, kernel_size=3)
         # alpha, blending_w, background, and segmentation
-        self.base_res_layers = nn.Sequential(*[ResBlock(enc_features, 3) for i in range(2)])
-        self.blending_w_alpha_pred = nn.Sequential(ResBlock(enc_features, 3),
-                                ResBlock(enc_features, 3),
-                                nn.BatchNorm2d(enc_features),
-                                ConvBlock(enc_features, num_planes, 3, down_sample=False),
+        self.base_res_layers = nn.Sequential(*[ResBlock(encoder_ouput_features, 3) for i in range(2)])
+        self.blending_w_alpha_pred = nn.Sequential(ResBlock(encoder_ouput_features, 3),
+                                ResBlock(encoder_ouput_features, 3),
+                                nn.BatchNorm2d(encoder_ouput_features),
+                                ConvBlock(encoder_ouput_features, num_planes, 3, down_sample=False),
                                 nn.BatchNorm2d(num_planes),
                                 ConvBlock(num_planes, num_planes*2, 3, down_sample=False, use_no_relu=True))
-        self.bg_pred = nn.Sequential(ResBlock(enc_features, 3),
-                                ResBlock(enc_features, 3),
-                                ConvBlock(enc_features, 3, 3, down_sample=False, use_no_relu=True))
+        self.bg_pred = nn.Sequential(ResBlock(encoder_ouput_features, 3),
+                                ResBlock(encoder_ouput_features, 3),
+                                ConvBlock(encoder_ouput_features, configs['out_put_channels'], 3, down_sample=False, use_no_relu=True))
 
     def forward(self, input_img):
         # assert self.configs['source_code'][1]=='1', 'semantic mpi expects source_code 01x'
