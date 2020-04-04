@@ -6,6 +6,19 @@ PyTorch:
       torch>=1.4.0
 
 #### Usage
+#### Simple test
+
+```
+# to run the model with dummy data
+$ cd monocular
+$ python -m src.monocular_stereo_magnification
+
+```
+
+
+### How to use it with your code
+
+Create a config dictionary and a data loader that conforms the conventions followed below
 
 #### Set up a configuration dictionary
 
@@ -46,3 +59,9 @@ novel_view = monocular_nvs_network(input_img, k_mats, r_mats, t_vecs)
 print(f'Novel VIew Shape== {novel_view.shape}')
 # you should get [B, 3, H, W]
 ```
+
+
+#### Limitations
+
+1. Supports planes which are fronto-parallel to the source camera
+2. The source and target camera intrinsics are assumed to be the same
