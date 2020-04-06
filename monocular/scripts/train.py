@@ -21,6 +21,7 @@ configs['out_put_channels'] = 3
 configs['dataset_root'] = '/data/Datasets/KittiOdometry/dataset'
 configs['mode'] = 'train'
 configs['max_baseline'] = 5
+configs['num_epochs'] = 50
 
 train_dataset = KittiLoader(configs)
 train_loader = DataLoader(dataset=train_dataset,
@@ -37,10 +38,12 @@ test_loader = DataLoader(dataset=test_dataset,
 monocular_nvs_network = StereoMagnification(configs).float().cuda(0)
 optimizer = torch.optim.Adam(monocular_nvs_network.parameters(), lr=1e-4, betas=(0.9, 0.999))
 optimizer.zero_grad()
-for itr, data in tqdm.tqdm(enumerate(train_loader), total=len(train_loader)):
-    data = {k:v.float().cuda(0) for k,v in data.items()}
-    novel_view = monocular_nvs_network(data['input_img'], data['k_mats'], data['r_mats'], data['t_vecs'])
-    loss = F.l1_loss(novel_view, data['target_im'])
-    loss.backward()
-    optimizer.step()
-    print(f'iteration {itr} loss {loss.item()}')
+for epoch in range(configs['num_epochs']):
+    print(f'Epoch number == {epoch}')
+    for itr, data in tqdm.tqdm(enumerate(train_loader), total=len(train_loader)):
+        data = {k:v.float().cuda(0) for k,v in data.items()}
+        novel_view = monocular_nvs_network(data['input_img'], data['k_mats'], data['r_mats'], data['t_vecs'])
+        loss = F.l1_loss(novel_view, data['target_im'])
+        loss.backward()
+        optimizer.step()
+        print(f'iteration {itr} loss {loss.item()}')
