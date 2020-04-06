@@ -1,3 +1,4 @@
+import os
 import tqdm
 import torch
 import torch.nn.functional as F
@@ -19,6 +20,7 @@ configs['out_put_channels'] = 3
 
 ## Dataset related settings
 configs['dataset_root'] = '/data/Datasets/KittiOdometry/dataset'
+configs['logging_dir'] = 'specify a location'
 configs['mode'] = 'train'
 configs['max_baseline'] = 5
 configs['num_epochs'] = 50
@@ -38,6 +40,8 @@ test_loader = DataLoader(dataset=test_dataset,
 monocular_nvs_network = StereoMagnification(configs).float().cuda(0)
 optimizer = torch.optim.Adam(monocular_nvs_network.parameters(), lr=1e-4, betas=(0.9, 0.999))
 optimizer.zero_grad()
+models_dir = os.path.join(configs['logging_dir'], 'models')
+os.makedirs(models_dir, exist_ok=True)
 for epoch in range(configs['num_epochs']):
     print(f'Epoch number == {epoch}')
     for itr, data in tqdm.tqdm(enumerate(train_loader), total=len(train_loader)):
@@ -47,3 +51,5 @@ for epoch in range(configs['num_epochs']):
         loss.backward()
         optimizer.step()
         print(f'iteration {itr} loss {loss.item()}')
+    torch.save(os.path.join(models_dir, str(epoch).zfill(4)+'_snapshot.pt'), monocular_nvs_network.state_dict())
+    #### here you can do tests every epoch
