@@ -38,6 +38,13 @@ configs['encoder_ouput_features'] = 64
 configs['input_channels'] = 3
 configs['out_put_channels'] = 3
 
+## Dataset related settings
+configs['dataset_root'] = '/data/Datasets/KittiOdometry/dataset'
+# mode t['train', 'test']
+configs['mode'] = 'train'
+# maximum frame-distance between input and target frames
+configs['max_baseline'] = 5
+
 ```
 #### Create an instance of StereoMagnification class with the configs dictionary
 
@@ -49,7 +56,7 @@ monocular_nvs_network = StereoMagnification(configs).eval()
   * ```r_mats```: rotation matrix from source camera to the target camera
   * ```t_vecs```: translation vector, it is the source camera center as seen from the target
 ```python
-input_img = torch.rand(1, 3, 256, 256)
+input_img = torch.rand(1, 3, 128, 128)
 k_mats = torch.rand(1,3,3)
 r_mats = torch.rand(1,3,3)
 t_vecs = torch.rand(1,3,1)
