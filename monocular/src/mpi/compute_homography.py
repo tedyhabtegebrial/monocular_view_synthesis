@@ -45,7 +45,9 @@ class ComputeHomography:
         depth_proposals = depth_proposals.expand(batch_size, num_dep, 1).contiguous()
         depth_proposals = depth_proposals.view(-1, 1, 1)
         num_1 = torch.bmm(torch.bmm(torch.bmm(rmats.permute(0, 2, 1), tvecs), n), rmats.permute(0, 2, 1))
-        den_1 = -depth_proposals - torch.bmm(torch.bmm(n, rmats.permute(0, 2, 1)), tvecs)
+        den_1 = -depth_proposals - torch.bmm(torch.bmm(n, rmats.permute(0, 2, 1)), tvecs) 
+        assert not(torch.isnan(den_1).any() or torch.isinf(den_1).any()), "nan found in den_1"
+
         h_mats = torch.bmm(torch.bmm(kmats, (rmats.permute(0, 2, 1) + (num_1 / den_1))), kinv)
         h_mats = h_mats.view(batch_size, num_dep, 3, 3)
         return h_mats

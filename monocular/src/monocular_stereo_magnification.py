@@ -48,13 +48,15 @@ class StereoMagnification(nn.Module):
         fg_img = input_img
         color_imgs_ref_cam = self._get_color_imgs_per_plane(fg_img, bg_img, blending_weights)
         pred_img, alphas = self._render_rgb(h_mats, mpi_alpha, color_imgs_ref_cam)
+        print(tvecs)
+
         if self.training:
             return pred_img, alphas
         else:
             return pred_img
 
     def _render_rgb(self, h_mats, mpi_alpha_seg, color_imgs_ref_cam):
-        alphas = torch.sigmoid(mpi_alpha_seg.clamp(min=-200.0, max=200.0))
+        alphas = torch.sigmoid(mpi_alpha_seg)
         color_imgs = self.apply_homography(h_mats, color_imgs_ref_cam)
         warped_alphas = self.apply_homography(h_mats, alphas)
         output_rgb = self.composite(color_imgs, warped_alphas)

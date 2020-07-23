@@ -1,10 +1,13 @@
-import os
+import os, sys
 import tqdm
 import torch
 import torch.nn.functional as F
+import torchvision.utils
+import torch.nn.utils
 from torch.utils.data import Dataset, DataLoader
-from .monocular.src import StereoMagnification
-from .monocular.src import KittiLoader
+sys.path.append('../')
+from monocular.src import StereoMagnification
+from monocular.src import KittiLoader
 
 configs = {}
 configs['width'] = 384
@@ -19,11 +22,11 @@ configs['input_channels'] = 3
 configs['out_put_channels'] = 3
 
 ## Dataset related settings
-configs['dataset_root'] = '/data/Datasets/KittiOdometry/dataset'
-configs['logging_dir'] = 'specify a location'
+configs['dataset_root'] = '/home/anwar/data/KITTI_Odometry/dataset'
+configs['logging_dir'] = '/home/anwar/data/experiments/exp2'
 configs['mode'] = 'train'
 configs['max_baseline'] = 5
-configs['num_epochs'] = 50
+configs['num_epochs'] = 2
 
 train_dataset = KittiLoader(configs)
 train_loader = DataLoader(dataset=train_dataset,
@@ -42,14 +45,28 @@ optimizer = torch.optim.Adam(monocular_nvs_network.parameters(), lr=1e-4, betas=
 optimizer.zero_grad()
 models_dir = os.path.join(configs['logging_dir'], 'models')
 os.makedirs(models_dir, exist_ok=True)
+steps = 0
+print('Logging info: ', configs['logging_dir'])
+
+torch.autograd.set_detect_anomaly(True)
+
 for epoch in range(configs['num_epochs']):
     print(f'Epoch number == {epoch}')
     for itr, data in tqdm.tqdm(enumerate(train_loader), total=len(train_loader)):
         data = {k:v.float().cuda(0) for k,v in data.items()}
-        novel_view = monocular_nvs_network(data['input_img'], data['k_mats'], data['r_mats'], data['t_vecs'])
-        loss = F.l1_loss(novel_view, data['target_im'])
+        novel_view, alphas = monocular_nvs_network(data['input_img'], data['k_mats'], data['r_mats'], data['t_vecs'])
+        loss = F.mse_loss(novel_view, data['target_img'])
         loss.backward()
+        # torch.nn.utils.clip_grad_norm_(monocular_nvs_network.parameters(), 1)
         optimizer.step()
-        print(f'iteration {itr} loss {loss.item()}')
+        print(f'epoch {epoch} iteration {itr} loss {loss.item()}')
+
+        if(steps % 10000 == 0):
+            torchvision.utils.save_image(novel_view, os.path.join(configs['logging_dir'], str(steps) +'_novel.png'))
+            torchvision.utils.save_image(data['target_img'], os.path.join(configs['logging_dir'], str(steps) +'_target.png'))
+            torchvision.utils.save_image(data['input_img'], os.path.join(configs['logging_dir'], str(steps) +'_input.png'))
+        steps += 1
+
+
     torch.save(os.path.join(models_dir, str(epoch).zfill(4)+'_snapshot.pt'), monocular_nvs_network.state_dict())
     #### here you can do tests every epoch

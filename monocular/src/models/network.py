@@ -98,7 +98,8 @@ class ConvNetwork(torch.nn.Module):
         feats_0 = self.discriptor_net(input_img)
         feats_1 = self.base_res_layers(feats_0)
         blending_alpha = self.blending_w_alpha_pred(feats_1)
-        blending_alpha = blending_alpha.view(b, self.num_planes, 2, h, w)
+        blending_alpha = blending_alpha.view(b, self.num_planes, 2, h, w).clamp(min = -100, max = 100)
+        print('blending alpha values:', blending_alpha.min().item(), blending_alpha.max().item())
         blending_weights = torch.sigmoid(blending_alpha[:, :, 0, :, :])
         alpha = blending_alpha[:, :, 1, :, :]
         bg_img = torch.sigmoid(self.bg_pred(feats_0))
