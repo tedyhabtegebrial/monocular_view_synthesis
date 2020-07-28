@@ -38,33 +38,66 @@ test_loader = DataLoader(dataset=test_dataset,
 models_dir = os.path.join(configs['logging_dir'], 'models')
 monocular_nvs_network = StereoMagnification(configs).float().cuda(0)
 # monocular_nvs_network = torch.load_state_dict(torch.load(os.path.join(models_dir, str(0).zfill(4)+'_snapshot.pt')))
-# monocular_nvs_network.eval()
+monocular_nvs_network.eval()
 os.makedirs(models_dir, exist_ok=True)
 
 
 steps = 0
 print('Logging info: ', configs['logging_dir'])
 
-torch.autograd.set_detect_anomaly(True)
+# torch.autograd.set_detect_anomaly(True)
 
-def move_forward(data, range, frames):
-    steps = torch.linspace(0, range, frames)
-    start_t_vec = torch.zeros_like(data['t_vecs'])
+def create_images(data, t_vecs, direction):
     novel_views = []
-    for i in range(frames):
-        end_t_vec = torch.zeros_like(start_t_vec)
-        end_t_vec[2] = steps[i]
-        novel_view, alphas = monocular_nvs_network(data['input_img'], data['k_mats'], torch.eye(3), end_t_vec)
-        novel_views.append(novel_view.item())
-    imageio.mimwrite(os.path.join(configs['logging_dir'], str(steps) +'_forward'), novel_views)
+    for i in range(len(t_vecs)):
+        with torch.no_grad():
+            novel_view = monocular_nvs_network(data['input_img'], data['k_mats'], data['r_mats'], -t_vecs[i])
+        novel_view = novel_view.squeeze().permute(1, 2, 0)
+        novel_views.append(novel_view.cpu().detach())
+    imageio.mimwrite(os.path.join(configs['logging_dir'], direction + '_demo.gif'), novel_views)
+
+
+# Create [frames, 3, 1] vectors in the linear sampling of [0, m_range]
+def move_forward(data, m_range, frames):
+    steps = torch.linspace(0, m_range, frames).reshape((frames, 1, 1))
+    end_t_vec = torch.cat([torch.zeros((frames, 2, 1)), steps], dim=1).cuda(0)
+    print(end_t_vec.shape)
+    create_images(data, end_t_vec, 'forward')
+
+# Create [frames, 3, 1] vectors in the linear sampling of [0, m_range]
+def move_horizontal(data, m_range, frames):
+    steps = torch.linspace(-m_range/2, m_range/2, frames).reshape((frames, 1, 1))
+    end_t_vec = torch.cat([steps, torch.zeros((frames, 2, 1))], dim=1).cuda(0)
+    create_images(data, end_t_vec, 'horizontal')
+
+# Create [frames, 3, 1] vectors in the linear sampling of [0, m_range]
+def move_cicular(data, m_range, frames):
+    x_sort = torch.linspace(0, m_range, frames//4 + 1).reshape((frames//4 + 1, 1, 1))
+    y_rev = torch.sqrt(m_range**2 - x_sort**2)
+    y_sort = torch.sort(y_rev, dim=0)[0]
+    x_rev = torch.sort(x_sort, dim=0, descending=True)[0]
+    x_neg_rev = -x_sort[1:]
+    y_neg_rev = -y_sort[1:]
+    x_neg_sort = torch.sort(x_neg_rev, dim=0)[0]
+    y_neg_sort = torch.sort(y_neg_rev, dim=0)[0]
+    x = torch.cat([x_neg_sort, x_sort, x_rev[1:], x_neg_rev[:-1]], dim=0)
+    y = torch.cat([y_sort, y_rev, y_neg_rev[1:], y_neg_sort[:-1]], dim=0)
+
+    end_t_vec = torch.cat([x, y, torch.zeros_like(x)], dim=1).cuda(0)
+    create_images(data, end_t_vec, 'circular')
 
 
 print('Demo mode')
-for itr, data in tqdm.tqdm(enumerate(test_loader), total=len(test_loader)):
+for itr, data in enumerate(test_loader):
     data = {k:v.float().cuda(0) for k,v in data.items()}
-    novel_view, alphas = monocular_nvs_network(data['input_img'], data['k_mats'], data['r_mats'], data['t_vecs'])
-    start_t_vec = torch.zeros_like(data['t_vecs'])
+    # novel_view, alphas = monocular_nvs_network(data['input_img'], data['k_mats'], data['r_mats'], data['t_vecs'])
+    # start_t_vec = torch.zeros_like(data['t_vecs'])
     move_forward(data, 10, 16)
+    move_horizontal(data, 10, 16)
+    move_cicular(data, 10, 16)
+    print('moved forward')
+
+    break
     # # 
     # for v in range(16):
     #     a = (v)/(16-1)
