@@ -24,7 +24,7 @@ configs['out_put_channels'] = 3
 
 ## Dataset related settings
 configs['dataset_root'] = '/home/anwar/data/KITTI_Odometry/dataset'
-configs['logging_dir'] = '/home/anwar/data/experiments/exp3'
+configs['logging_dir'] = '/home/anwar/data/experiments/exp4'
 configs['mode'] = 'train'
 configs['max_baseline'] = 5
 configs['num_epochs'] = 2
@@ -37,7 +37,7 @@ test_loader = DataLoader(dataset=test_dataset,
 
 models_dir = os.path.join(configs['logging_dir'], 'models')
 monocular_nvs_network = StereoMagnification(configs).float().cuda(0)
-# monocular_nvs_network = torch.load_state_dict(torch.load(os.path.join(models_dir, str(0).zfill(4)+'_snapshot.pt')))
+monocular_nvs_network.load_state_dict(torch.load(os.path.join(models_dir, str(9).zfill(4)+'_snapshot.pt')))
 monocular_nvs_network.eval()
 os.makedirs(models_dir, exist_ok=True)
 
@@ -92,9 +92,9 @@ for itr, data in enumerate(test_loader):
     data = {k:v.float().cuda(0) for k,v in data.items()}
     # novel_view, alphas = monocular_nvs_network(data['input_img'], data['k_mats'], data['r_mats'], data['t_vecs'])
     # start_t_vec = torch.zeros_like(data['t_vecs'])
-    move_forward(data, 10, 16)
-    move_horizontal(data, 10, 16)
-    move_cicular(data, 10, 16)
+    move_forward(data, 1, 16)
+    move_horizontal(data, 1, 16)
+    move_cicular(data, 1, 16)
     print('moved forward')
 
     break
