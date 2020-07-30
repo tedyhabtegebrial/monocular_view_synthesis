@@ -13,7 +13,7 @@ configs = {}
 configs['width'] = 384
 configs['height'] = 256
 configs['batch_size'] = 4
-configs['num_planes'] = 64
+configs['num_planes'] = 32
 configs['near_plane'] = 2.5
 configs['far_plane'] = 20000
 configs['encoder_features'] = 32
@@ -23,9 +23,9 @@ configs['out_put_channels'] = 3
 
 ## Dataset related settings
 configs['dataset_root'] = '/home/anwar/data/KITTI_Odometry/dataset'
-configs['logging_dir'] = '/home/anwar/data/experiments/exp4'
+configs['logging_dir'] = '/home/anwar/data/experiments/exp5'
 configs['mode'] = 'train'
-configs['max_baseline'] = 2
+configs['max_baseline'] = 5
 configs['num_epochs'] = 10
 
 train_dataset = KittiLoader(configs)
