@@ -150,7 +150,9 @@ class KittiLoader(Dataset):
         max_offset = self.configs['max_baseline']
         assert max_offset>0, 'offset should be atleast 1'
         # if True:
-        offset = random.randint(1, max_offset-1)
+        offset = 1
+        if(max_offset > 1):
+            offset = random.randint(1, max_offset-1)
         if random.random()>0.5:
             offset = -offset
         target_idx = str(frame + offset).zfill(6)
