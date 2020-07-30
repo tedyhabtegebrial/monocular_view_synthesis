@@ -48,7 +48,7 @@ class StereoMagnification(nn.Module):
         fg_img = input_img
         color_imgs_ref_cam = self._get_color_imgs_per_plane(fg_img, bg_img, blending_weights)
         pred_img, alphas = self._render_rgb(h_mats, mpi_alpha, color_imgs_ref_cam)
-        print(tvecs)
+        # print(tvecs)
 
         if self.training:
             return pred_img, alphas

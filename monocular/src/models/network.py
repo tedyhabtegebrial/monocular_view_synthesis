@@ -82,11 +82,12 @@ class ConvNetwork(torch.nn.Module):
         self.base_res_layers = nn.Sequential(*[ResBlock(encoder_ouput_features, 3) for i in range(2)])
         self.blending_w_alpha_pred = nn.Sequential(ResBlock(encoder_ouput_features, 3),
                                 ResBlock(encoder_ouput_features, 3),
-                                # nn.BatchNorm2d(encoder_ouput_features),
+                                nn.BatchNorm2d(encoder_ouput_features),
                                 ConvBlock(encoder_ouput_features, num_planes, 3, down_sample=False),
-                                # nn.BatchNorm2d(num_planes),
+                                nn.BatchNorm2d(num_planes),
                                 ConvBlock(num_planes, num_planes*2, 3, down_sample=False, use_no_relu=True))
         self.bg_pred = nn.Sequential(ResBlock(encoder_ouput_features, 3),
+                                # nn.BatchNorm2d(encoder_ouput_features),
                                 ResBlock(encoder_ouput_features, 3),
                                 ConvBlock(encoder_ouput_features, configs['out_put_channels'], 3, down_sample=False, use_no_relu=True))
 
@@ -98,13 +99,14 @@ class ConvNetwork(torch.nn.Module):
         feats_0 = self.discriptor_net(input_img)
         feats_1 = self.base_res_layers(feats_0)
         blending_alpha = self.blending_w_alpha_pred(feats_1)
-        blending_alpha = blending_alpha.view(b, self.num_planes, 2, h, w).clamp(min = -100, max = 100)
+        blending_alpha = blending_alpha.view(b, self.num_planes, 2, h, w)
         print('blending alpha values:', blending_alpha.min().item(), blending_alpha.max().item())
+        blending_alpha = blending_alpha.clamp(min = -100, max = 100)
         blending_weights = torch.sigmoid(blending_alpha[:, :, 0, :, :])
         alpha = blending_alpha[:, :, 1, :, :]
         bg_img = self.bg_pred(feats_0)
-        print('bg_img min and max', bg_img.min().item(), bg_img.max().item())
-        bg_img = torch.sigmoid(bg_img)
+        # print('bg_img min and max', bg_img.min().item(), bg_img.max().item())
+        bg_img = torch.sigmoid(bg_img.clamp(min = -100, max = 100))
 
         alpha, blending_weights = alpha.unsqueeze(2), blending_weights.unsqueeze(2)
         return alpha, blending_weights, bg_img
