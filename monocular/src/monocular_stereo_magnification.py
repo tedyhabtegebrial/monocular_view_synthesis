@@ -23,10 +23,10 @@ class StereoMagnification(nn.Module):
         '''
         super(StereoMagnification, self).__init__()
         self.configs = configs
-        # self.mpi_net = SingleViewNetwork(configs)
+        self.mpi_net = SingleViewNetwork(configs)
         self.ComputeBlendingWeights = ComputeBlendingWeights()
 
-        self.mpi_net = ConvNetwork(configs)
+        # self.mpi_net = ConvNetwork(configs)
         self.compute_homography = ComputeHomography(configs)
         self.apply_homography = ApplyHomography()
         self.composite = AlphaComposition()
@@ -48,17 +48,18 @@ class StereoMagnification(nn.Module):
         :return alphas:   per-plane alphas, returned so that we can see what the scene representation looks like
         '''
 
+        # Uncomment this for using SingleViewNetwork
+        mpi_alphas_bg_img = self.mpi_net(input_img)
+        b, d, h, w = mpi_alphas_bg_img.shape
+        ones_ = torch.ones(b, 1, 1, h, w).to(mpi_alphas_bg_img.device)
+        mpi_alpha = mpi_alphas_bg_img[:, :self.configs['num_planes']-1, :, :].unsqueeze(2)
+        mpi_alpha = torch.cat([mpi_alpha, ones_], dim=1)
+        bg_img = mpi_alphas_bg_img[:, -3:, :, :]
+        blending_weights = self.ComputeBlendingWeights(mpi_alpha)
 
-        # mpi_alphas_bg_img = self.mpi_net(input_img)
-        # b, d, h, w = mpi_alphas_bg_img.shape
-        # ones_ = torch.ones(b, 1, 1, h, w).to(mpi_alphas_bg_img.device)
-        # mpi_alpha = mpi_alphas_bg_img[:, :self.configs['num_planes']-1, :, :].unsqueeze(2)
-        # mpi_alpha = torch.cat([mpi_alpha, ones_], dim=1)
-        # # print(mpi_alpha.shape)
-        # bg_img = mpi_alphas_bg_img[:, -3:, :, :]
-        # blending_weights = self.ComputeBlendingWeights(mpi_alpha)
-
-        mpi_alpha, blending_weights, bg_img = self.mpi_net(input_img)
+        # Uncomment this for using our own network
+        # mpi_alpha, blending_weights, bg_img = self.mpi_net(input_img)
+        
         h_mats = self.compute_homography(kmats, rmats, tvecs)
         fg_img = input_img
         color_imgs_ref_cam = self._get_color_imgs_per_plane(fg_img, bg_img, blending_weights)
