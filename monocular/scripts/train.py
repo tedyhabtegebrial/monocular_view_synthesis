@@ -7,7 +7,8 @@ import torch.nn.utils
 from torch.utils.data import Dataset, DataLoader
 sys.path.append('../')
 from monocular.src import StereoMagnification
-from monocular.src import KittiLoader
+from monocular.src import KittiLoader, KITTIDataLoader
+
 
 configs = {}
 configs['width'] = 384
@@ -22,23 +23,25 @@ configs['input_channels'] = 3
 configs['out_put_channels'] = 3
 
 ## Dataset related settings
-configs['dataset_root'] = '/home/anwar/data/KITTI_Odometry/dataset'
-configs['logging_dir'] = '/home/anwar/data/experiments/exp5'
+# configs['dataset_root'] = '/home/anwar/data/KITTI_Odometry/dataset'
+configs['dataset_root'] = '/home/anwar/data/dataset_kitti'
+configs['logging_dir'] = '/home/anwar/data/experiments/exp6'
 configs['mode'] = 'train'
 configs['max_baseline'] = 5
 configs['num_epochs'] = 10
 
-train_dataset = KittiLoader(configs)
+train_dataset = KITTIDataLoader()
+train_dataset.initialize(configs)
 train_loader = DataLoader(dataset=train_dataset,
                          batch_size=configs['batch_size'],
                          shuffle=True,
                          num_workers=max(1, configs['batch_size']//2),
                          )
-test_dataset = KittiLoader({**configs, 'mode':'test'})
-test_loader = DataLoader(dataset=test_dataset,
-                         batch_size=1,
-                         shuffle=False,
-                         )
+# test_dataset = KITTIDataLoader({**configs, 'mode':'test'})
+# test_loader = DataLoader(dataset=test_dataset,
+#                          batch_size=1,
+#                          shuffle=False,
+#                          )
 
 monocular_nvs_network = StereoMagnification(configs).float().cuda(0)
 optimizer = torch.optim.Adam(monocular_nvs_network.parameters(), lr=4e-4, betas=(0.9, 0.999))

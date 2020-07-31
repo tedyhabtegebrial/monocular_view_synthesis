@@ -6,20 +6,30 @@ import os
 import csv
 import random
 from PIL import Image
+
 class KITTIDataLoader(data.Dataset):
     def __init__(self):
         super(KITTIDataLoader, self).__init__()
 
+
     def initialize(self, opt):
         self.opt = opt
-        self.dataroot = './datasets/dataset_kitti'
+        self.dataroot = self.opt['dataset_root']
 
-        self.opt.bound = 5
-        with open(os.path.join(self.dataroot, 'id_train.txt'), 'r') as fp:
-            self.ids_train = [s.strip() for s in fp.readlines() if s]
+        self.bound = self.opt['max_baseline']
 
-        self.ids = self.ids_train
-        self.dataset_size = int(len(self.ids))// (opt.bound*2)
+        if(self.opt['mode'] == 'train'):
+            with open(os.path.join(self.dataroot, 'id_train.txt'), 'r') as fp:
+                self.ids_train = [s.strip() for s in fp.readlines() if s]
+
+            self.ids = self.ids_train
+        else:
+            with open(os.path.join(self.dataroot, 'id_test.txt'), 'r') as fp:
+                self.ids_test = [s.strip() for s in fp.readlines() if s]
+
+            self.ids = self.ids_test
+
+        self.dataset_size = int(len(self.ids))// (self.bound*2)
 
         self.pose_dict = {}
         pose_path = os.path.join(self.dataroot, 'poses.txt')
@@ -36,7 +46,7 @@ class KITTIDataLoader(data.Dataset):
         id = self.ids[index]
         id_num = int(id.split('_')[-1])
         while True:
-            delta = random.choice([x for x in range(-self.opt.bound, self.opt.bound+1) if x != 0] )
+            delta = random.choice([x for x in range(-self.bound, self.bound+1) if x != 0] )
             id_target = id.split('_')[0] +'_' + str(id_num + delta).zfill(len(id.split('_')[-1]))
             if id_target in self.pose_dict.keys(): break
 
@@ -58,16 +68,16 @@ class KITTIDataLoader(data.Dataset):
         R = R.T
         T = R.dot(-T)
 
-        mat = np.block(
-            [ [RA.T@RB, T],
-              [np.zeros((1,3)), 1] ] )
+        # mat = np.block(
+        #     [ [RA.T@RB, T],
+        #       [np.zeros((1,3)), 1] ] )
 
         data_dict = {}
-        data_dict['input_img'] = A
-        data_dict['target_img'] = B
-        data_dict['k_mats'] = mat.astype(np.float32)
-        data_dict['r_mats'] = R
-        data_dict['t_vecs'] = T
+        data_dict['input_img'] = torch.Tensor(A)
+        data_dict['target_img'] = torch.Tensor(B)
+        data_dict['k_mats'] = torch.Tensor([718.9, 0., 128, 0., 718.9, 128, 0., 0., 1.]).reshape((3, 3))
+        data_dict['r_mats'] = torch.Tensor(R)
+        data_dict['t_vecs'] = torch.Tensor(T)
 
         return data_dict
         # return {'A': A, 'B': B, 'RT': mat.astype(np.float32)}
