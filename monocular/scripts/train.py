@@ -14,7 +14,7 @@ configs['width'] = 384
 configs['height'] = 256
 configs['batch_size'] = 4
 configs['num_planes'] = 32
-configs['near_plane'] = 2.5
+configs['near_plane'] = 5
 configs['far_plane'] = 20000
 configs['encoder_features'] = 32
 configs['encoder_ouput_features'] = 64
@@ -22,10 +22,17 @@ configs['input_channels'] = 3
 configs['out_put_channels'] = 3
 
 ## Dataset related settings
-configs['dataset_root'] = '/home/anwar/data/KITTI_Odometry/dataset'
-configs['logging_dir'] = '/home/anwar/data/experiments/exp5'
+is_teddy = True
+if is_teddy:
+    # configs['dataset_root'] = '/home/anwar/data/KITTI_Odometry/dataset'
+    configs['dataset_root'] = '/data/teddy/KITTI_Odometry/dataset'
+    configs['logging_dir'] = '/habtegebrialdata/monocular_nvs/experiment_logs/exp_1_with_bn_new_alpha_comp_2'
+else:
+    configs['dataset_root'] = '/home/anwar/data/KITTI_Odometry/dataset'
+    configs['logging_dir'] = '/home/anwar/data/experiments/exp5'
+
 configs['mode'] = 'train'
-configs['max_baseline'] = 5
+configs['max_baseline'] = 2
 configs['num_epochs'] = 10
 
 train_dataset = KittiLoader(configs)
@@ -41,7 +48,7 @@ test_loader = DataLoader(dataset=test_dataset,
                          )
 
 monocular_nvs_network = StereoMagnification(configs).float().cuda(0)
-optimizer = torch.optim.Adam(monocular_nvs_network.parameters(), lr=4e-4, betas=(0.9, 0.999))
+optimizer = torch.optim.Adam(monocular_nvs_network.parameters(), lr=1e-4, betas=(0.9, 0.999))
 optimizer.zero_grad()
 models_dir = os.path.join(configs['logging_dir'], 'models')
 os.makedirs(models_dir, exist_ok=True)
@@ -55,7 +62,7 @@ for epoch in range(configs['num_epochs']):
     for itr, data in tqdm.tqdm(enumerate(train_loader), total=len(train_loader)):
         data = {k:v.float().cuda(0) for k,v in data.items()}
         novel_view, alphas = monocular_nvs_network(data['input_img'], data['k_mats'], data['r_mats'], data['t_vecs'])
-        loss = F.mse_loss(novel_view, data['target_img'])
+        loss = F.l1_loss(novel_view, data['target_img'])
         loss.backward()
         # torch.nn.utils.clip_grad_norm_(monocular_nvs_network.parameters(), 1)
         optimizer.step()
