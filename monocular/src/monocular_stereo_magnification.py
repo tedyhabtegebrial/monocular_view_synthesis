@@ -35,7 +35,8 @@ class StereoMagnification(nn.Module):
         b, z, _, h, w = weight.shape
         fg = fg.unsqueeze(1)
         bg = bg.unsqueeze(1)
-        color_imgs = bg*weight + (1.0-weight)*fg
+        # color_imgs = bg*weight + (1.0-weight)*fg
+        color_imgs = fg*weight + (1.0-weight)*bg
         return color_imgs
 
     def forward(self, input_img, kmats, rmats, tvecs):
@@ -61,6 +62,7 @@ class StereoMagnification(nn.Module):
         # mpi_alpha, blending_weights, bg_img = self.mpi_net(input_img)
         h_mats = self.compute_homography(kmats, rmats, tvecs)
         fg_img = input_img
+        # here mistake
         color_imgs_ref_cam = self._get_color_imgs_per_plane(fg_img, bg_img, blending_weights)
         pred_img, alphas = self._render_rgb(h_mats, mpi_alpha, color_imgs_ref_cam)
         # print(tvecs)
