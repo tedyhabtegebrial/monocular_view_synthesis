@@ -66,6 +66,7 @@ for epoch in range(configs['num_epochs']):
         loss.backward()
         # torch.nn.utils.clip_grad_norm_(monocular_nvs_network.parameters(), 1)
         optimizer.step()
+        optimizer.zero_grad()
         print(f'epoch {epoch} iteration {itr} loss {loss.item()}')
         if(steps % 200 == 0):
             #  novel_view.data
