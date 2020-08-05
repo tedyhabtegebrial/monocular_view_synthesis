@@ -26,7 +26,7 @@ is_teddy = True
 if is_teddy:
     # configs['dataset_root'] = '/home/anwar/data/KITTI_Odometry/dataset'
     configs['dataset_root'] = '/data/teddy/KITTI_Odometry/dataset'
-    configs['logging_dir'] = '/habtegebrialdata/monocular_nvs/experiment_logs/exp_1_with_bn_new_alpha_comp_2'
+    configs['logging_dir'] = '/habtegebrialdata/monocular_nvs/experiment_logs/exp_1_with_bn_new_alpha_comp'
 else:
     configs['dataset_root'] = '/home/anwar/data/KITTI_Odometry/dataset'
     configs['logging_dir'] = '/home/anwar/data/experiments/exp5'
