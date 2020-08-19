@@ -74,9 +74,11 @@ class SingleViewNetwork(nn.Module):
 		self.conv_16_1 = nn.Conv2d(in_channels=64, out_channels=64, kernel_size=3, padding=1)
 		self.bn_16 = nn.BatchNorm2d(64)
 		# self.batch16 = nn.BatchNorm2d(64)
-		self.output = nn.Conv2d(in_channels=64, out_channels=configs['num_planes'] + 2, kernel_size=3, padding=1)
-		self.output_1 = nn.Conv2d(in_channels=64, out_channels=32, kernel_size=3, padding=1)
-		self.output_2 = nn.Conv2d(in_channels=32, out_channels=configs['num_planes'] + 2, kernel_size=3, padding=1)
+		self.output = nn.Conv2d(in_channels=64, out_channels=(configs['num_planes'] - 1) * 2 + 3, kernel_size=3, padding=1)
+
+		# self.output = nn.Conv2d(in_channels=64, out_channels=(configs['num_planes'] - 1) + 3, kernel_size=3, padding=1)
+		# self.output_1 = nn.Conv2d(in_channels=64, out_channels=32, kernel_size=3, padding=1)
+		# self.output_2 = nn.Conv2d(in_channels=32, out_channels=configs['num_planes'] * 2 + 2, kernel_size=3, padding=1)
 		# self.conv_1_0 = self.w_init(self.conv_1_0)
 		# self.conv_1_1 = self.w_init(self.conv_1_1)
 		# self.conv_2_0 = self.w_init(self.conv_2_0)
@@ -146,16 +148,16 @@ class SingleViewNetwork(nn.Module):
 		conv13 = F.relu((self.conv_13_1(F.relu(self.conv_13_0(torch.cat([up_12, conv3], dim=1))))))
 
 		up_13 = F.interpolate(conv13, scale_factor=2, mode='nearest')
-		conv14 = F.relu(self.conv_14_0(torch.cat([up_13, conv2], dim=1)))
+		conv14 = F.relu((self.conv_14_1(F.relu(self.conv_14_0(torch.cat([up_13, conv2], dim=1))))))
 
 		up_14 = F.interpolate(conv14, scale_factor=2, mode='nearest')
 		conv15 = F.relu((self.conv_15_1(F.relu(self.conv_15_0(torch.cat([up_14, conv1], dim=1))))))
 
 		conv16 = F.relu((self.conv_16_1(F.relu(self.conv_16_0(conv15)))))
-		# conv16 = self.bn_16(conv16)
+		conv16 = self.bn_16(conv16)
 
 		# output_1 = F.relu(self.output_1(conv16))
 		output = self.output(conv16)
-		print('alpha values:', output[:, :-3, :, :].min().item(), output[:, :-3, :, :].max().item())
+		print('alpha values:', output[:, :31, :, :].min().item(), output[:, :31, :, :].max().item())
 		# return F.sigmoid(output.clamp(min=-50.0, max=50.0))
 		return torch.sigmoid(output)
