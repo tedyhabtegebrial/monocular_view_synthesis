@@ -42,7 +42,8 @@ class ComputeDepth(nn.Module):
 		print('Image 3d shape', image_3d.shape)
 
 		# homography matrix
-		hom_mat = hom_mat.unsqueeze(0).expand(image_3d.shape[0], -1, -1)
+		hom_mat = hom_mat.unsqueeze(0)
+		hom_mat = hom_mat.expand(image_3d.shape[0], -1, -1)
 		print('Homography matrix shape', hom_mat.shape)
 
 		warped_img = torch.bmm(hom_mat, image_3d)
@@ -52,7 +53,8 @@ class ComputeDepth(nn.Module):
 		p[:, :3, :3] = r_mats
 		p[:, :3, 3:] = t_vecs
 
-		p = p.unsqueeze(1).expand(image_3d.shape[0], -1, -1)
+		p = p.unsqueeze(1)
+		p = p.expand(image_3d.shape[0], -1, -1)
 
 		# Image in target coordinates
 		image_target = torch.bmm(p, image_3d)
