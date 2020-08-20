@@ -6,6 +6,7 @@ class BackgroundNetwork(nn.Module):
 	def __init__(self, configs):
 		super(BackgroundNetwork, self).__init__()
 
+		self.configs = configs
 		output_size = self.configs['num_features'] * self.configs['occlusion_levels']
 
 		self.conv_1_0 = nn.Conv2d(in_channels=3, out_channels=32, kernel_size=7, padding=3)
@@ -58,6 +59,20 @@ class BackgroundNetwork(nn.Module):
 		up_6 = F.interpolate(conv6, scale_factor=2, mode='nearest')
 		conv7 = F.relu((self.conv_7_1(F.relu(self.conv_7_0(torch.cat([up_6, conv1], dim=1))))))
 
-		output = self.output(conv8)
+		output = self.output(conv7)
 
 		return torch.sigmoid(output)
+
+
+
+if __name__ == '__main__':
+	configs = {}
+	configs['width'] = 256
+	configs['height'] = 256
+	configs['num_features'] = 16
+	configs['input_channels'] = 3
+	configs['occlusion_levels'] = 3
+	network = BackgroundNetwork(configs).eval()
+	input_img = torch.rand(1, 3, 256, 256)
+	high_dimension_imgs = network(input_img)
+	print(f'New Image Shape == {high_dimension_imgs.shape}')

@@ -74,7 +74,7 @@ class SingleViewNetwork_DFKI(nn.Module):
 		self.conv_16_1 = nn.Conv2d(in_channels=64, out_channels=64, kernel_size=3, padding=1)
 		self.bn_16 = nn.BatchNorm2d(64)
 		# self.batch16 = nn.BatchNorm2d(64)
-		self.output = nn.Conv2d(in_channels=64, out_channels=(configs['occlusion_levels']  + configs['occlusion_levels'] * configs['num_planes'], kernel_size=3, padding=1))
+		self.output = nn.Conv2d(in_channels=64, out_channels=configs['occlusion_levels']  + configs['occlusion_levels'] * configs['num_planes'], kernel_size=3, padding=1)
 
 		
 	def forward(self, rgb):
@@ -121,5 +121,24 @@ class SingleViewNetwork_DFKI(nn.Module):
 		conv16 = self.bn_16(conv16)
 
 		output = self.output(conv16)
-		print('alpha values:', output[:, :31, :, :].min().item(), output[:, :31, :, :].max().item())
+		# print('alpha values:', output[:, :self.configs['num_planes'], :, :].min().item(), output[:, :self.configs['num_planes'], :, :].max().item())
 		return torch.sigmoid(output)
+
+
+if __name__ == '__main__':
+	configs = {}
+	configs['width'] = 256
+	configs['height'] = 256
+	configs['batch_size'] = 1
+	configs['num_planes'] = 64
+	configs['near_plane'] = 5
+	configs['far_plane'] = 10000
+	configs['encoder_features'] = 32
+	configs['encoder_ouput_features'] = 64
+	configs['input_channels'] = 3
+	configs['out_put_channels'] = 3
+	configs['occlusion_levels'] = 3
+	network = SingleViewNetwork_DFKI(configs).eval()
+	input_img = torch.rand(1, 3, 256, 256)
+	alphas_assoc = network(input_img)
+	print(f'Alphas and Association maps shape == {alphas_assoc.shape}')
