@@ -32,13 +32,6 @@ class ComputeDepth(nn.Module):
 		k_inv_img = torch.bmm(kinv, image)
 		print('K_inv_img Shape', k_inv_img.shape)
 
-		# divide by the 3rd dimension to get shape [B x H x W, 2, 1]
-
-
-		# add ones to make homogenous coordinates then shape is [B x H x W, 3, 1]
-
-
-		#
 
 		# occlusion points shape = [B x H x W, 1, occlusion levels]
 		self.occlusion_points = self.occlusion_points.unsqueeze(0).unsqueeze(0)
