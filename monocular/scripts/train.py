@@ -74,7 +74,7 @@ for epoch in range(configs['num_epochs']):
         print(f'epoch {epoch} iteration {itr} loss {loss.item()*255}')
         if(steps % 50 == 0):
             #  novel_view.data
-            novel_view = novel_view.data[:, :, :, :].cpu()
+            novel_view = novel_view.data[:, [2,1,0], :, :].cpu()
             target = data['target_img'].data[:, [2,1,0], :, :].cpu()
             input_img = data['input_img'].data[:, [2,1,0], :, :].cpu()
             torchvision.utils.save_image(novel_view, os.path.join(configs['logging_dir'], str(steps) +'_novel.png'))
