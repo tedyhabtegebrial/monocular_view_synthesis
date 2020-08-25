@@ -7,7 +7,7 @@ import torch.nn.utils
 from torch.utils.data import Dataset, DataLoader
 sys.path.append('../')
 from monocular.src import StereoMagnification
-from monocular.src import KittiLoader
+from monocular.src import KittiLoader, RealEstateLoader
 
 configs = {}
 configs['width'] = 384
