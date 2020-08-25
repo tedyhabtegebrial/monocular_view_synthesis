@@ -27,7 +27,7 @@ class ComputeDepth(nn.Module):
 		# image shape [B, H, W, 3]
 		image = image.reshape((b * h * w, 3, 1))
 		print('Image shape', image.shape)
-		
+
 		# k_inv_img shape should be [B x H x W, 3, 1]
 		k_inv_img = torch.bmm(kinv, image)
 		print('K_inv_img Shape', k_inv_img.shape)
@@ -36,7 +36,7 @@ class ComputeDepth(nn.Module):
 		self.occlusion_points = self.occlusion_points.unsqueeze(0).unsqueeze(0)
 		self.occlusion_points = self.occlusion_points.expand(k_inv_img.shape[0], -1, -1)
 		print('Occlusion Points shape', self.occlusion_points.shape)
-		
+
 		# image in 3d shape [B x H x W, 3, occlusion levels]
 		image_3d = torch.bmm(k_inv_img, self.occlusion_points)
 		print('Image 3d shape', image_3d.shape)
@@ -73,6 +73,3 @@ if __name__ == '__main__':
 	network = ComputeDepth(configs).eval()
 
 	network(images, kmats, hom_mat, r_mats, t_vecs)
-
-
-
