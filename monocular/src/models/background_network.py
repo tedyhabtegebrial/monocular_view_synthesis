@@ -3,13 +3,18 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 class BackgroundNetwork(nn.Module):
-	def __init__(self, configs):
+	def __init__(self, configs, reduce=False):
 		super(BackgroundNetwork, self).__init__()
 
 		self.configs = configs
+		input_size = 3
 		output_size = self.configs['num_features'] * self.configs['occlusion_levels']
 
-		self.conv_1_0 = nn.Conv2d(in_channels=3, out_channels=32, kernel_size=7, padding=3)
+		if(reduce):
+			input_size = self.configs['num_features']
+			output_size = 3
+
+		self.conv_1_0 = nn.Conv2d(in_channels=input_size, out_channels=32, kernel_size=7, padding=3)
 		self.conv_1_1 = nn.Conv2d(in_channels=32, out_channels=32, kernel_size=7, padding=3)
 		self.bn_1 = nn.BatchNorm2d(32)
 

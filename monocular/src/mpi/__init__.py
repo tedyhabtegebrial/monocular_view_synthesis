@@ -2,3 +2,4 @@ from .alpha_composition import AlphaComposition
 from .apply_homography import ApplyHomography
 from .compute_homography import ComputeHomography
 from .compute_blending_weights import ComputeBlendingWeights
+from .compute_flow_fields import WarpWithFlowFields

@@ -52,15 +52,20 @@ class ApplyHomography(nn.Module):
         grid = torch.cat([x_locs, y_locs], dim=2)
         grid = grid.view(b_size, num_d, h, w, 2)
         return grid
+    
     def warp_images(self, h_matrix, src_img, multiplane=True, mode='bilinear', grid=None):
         b_size, num_d, f_size, h, w = src_img.shape
         if grid is None:
             grid = self.get_grid(h_matrix, src_img, multiplane=True)
         grid_ = grid.view(-1, h, w, 2)
         src_img = src_img.contiguous().view(-1, f_size, h, w)
+        # print('apply homography grid shape', grid.shape)
+        # print('apply homography src_image shape', src_img.shape)
+
         warped_views = F.grid_sample(input=src_img, grid=grid_, mode=mode)
         warped_views = warped_views.view(b_size, num_d, f_size, h, w)
         return warped_views
+    
     def apply_grid(self, src_img, grid, mode='bilinear'):
         b_size, num_d, f_size, h, w = src_img.shape
         grid_ = grid.view(-1, h, w, 2)
@@ -72,4 +77,5 @@ class ApplyHomography(nn.Module):
     def forward(self, h_matrix, src_img, mode='bilinear', grid=None):
         assert h_matrix.ndimension() == 4, 'H Matrix should be a 4D Tensor'
         assert src_img.ndimension() == 5, "input src should be of shape [B, D, C, H, W] "
+        # print('forward apply homography shape', src_img.shape)
         return self.warp_images(h_matrix, src_img, multiplane=True, mode=mode, grid=grid)

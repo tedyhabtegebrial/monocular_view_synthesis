@@ -74,7 +74,7 @@ class SingleViewNetwork_DFKI(nn.Module):
 		self.conv_16_1 = nn.Conv2d(in_channels=64, out_channels=64, kernel_size=3, padding=1)
 		self.bn_16 = nn.BatchNorm2d(64)
 		# self.batch16 = nn.BatchNorm2d(64)
-		self.output = nn.Conv2d(in_channels=64, out_channels=configs['occlusion_levels']  + configs['occlusion_levels'] * configs['num_planes'], kernel_size=3, padding=1)
+		self.output = nn.Conv2d(in_channels=64, out_channels=configs['num_planes']  + configs['occlusion_levels'] * configs['num_planes'], kernel_size=3, padding=1)
 
 
 	def forward(self, rgb):

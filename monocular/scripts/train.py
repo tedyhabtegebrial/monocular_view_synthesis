@@ -7,7 +7,7 @@ import torch.nn.utils
 from torch.utils.data import Dataset, DataLoader
 sys.path.append('../')
 from monocular.src import StereoMagnification
-from monocular.src import KittiLoader
+from monocular.src import KittiLoader, RealEstateLoader
 
 configs = {}
 configs['width'] = 384
@@ -20,32 +20,36 @@ configs['encoder_features'] = 32
 configs['encoder_ouput_features'] = 64
 configs['input_channels'] = 3
 configs['out_put_channels'] = 3
+configs['num_features'] = 16
+configs['occlusion_levels'] = 3
 
 ## Dataset related settings
-is_teddy = True
+is_teddy = False
 if is_teddy:
     # configs['dataset_root'] = '/home/anwar/data/KITTI_Odometry/dataset'
     configs['dataset_root'] = '/data/teddy/KITTI_Odometry/dataset'
     configs['logging_dir'] = '/habtegebrialdata/monocular_nvs/experiment_logs/exp_1_with_bn_new_alpha_comp'
 else:
-    configs['dataset_root'] = '/home/anwar/data/KITTI_Odometry/dataset'
-    configs['logging_dir'] = '/home/anwar/data/experiments/exp5'
+    # configs['dataset_root'] = '/home/anwar/data/KITTI_Odometry/dataset'
+    configs['dataset_root'] = '/home5/anwar/data/realestate10k/'
+    configs['logging_dir'] = '/home5/anwar/data/experiments/exp9'
 
 configs['mode'] = 'train'
-configs['max_baseline'] = 2
+configs['max_baseline'] = 3
 configs['num_epochs'] = 10
 
-train_dataset = KittiLoader(configs)
+train_dataset = RealEstateLoader(configs)
+# train_dataset = KittiLoader(configs)
 train_loader = DataLoader(dataset=train_dataset,
                          batch_size=configs['batch_size'],
                          shuffle=True,
                          num_workers=max(1, configs['batch_size']//2),
                          )
-test_dataset = KittiLoader({**configs, 'mode':'test'})
-test_loader = DataLoader(dataset=test_dataset,
-                         batch_size=1,
-                         shuffle=False,
-                         )
+# test_dataset = KittiLoader({**configs, 'mode':'test'})
+# test_loader = DataLoader(dataset=test_dataset,
+#                          batch_size=1,
+#                          shuffle=False,
+#                          )
 
 monocular_nvs_network = StereoMagnification(configs).float().cuda(0)
 optimizer = torch.optim.Adam(monocular_nvs_network.parameters(), lr=1e-4, betas=(0.9, 0.999))
@@ -67,8 +71,8 @@ for epoch in range(configs['num_epochs']):
         # torch.nn.utils.clip_grad_norm_(monocular_nvs_network.parameters(), 1)
         optimizer.step()
         optimizer.zero_grad()
-        print(f'epoch {epoch} iteration {itr} loss {loss.item()}')
-        if(steps % 200 == 0):
+        print(f'epoch {epoch} iteration {itr} loss {loss.item()*255}')
+        if(steps % 50 == 0):
             #  novel_view.data
             novel_view = novel_view.data[:, [2,1,0], :, :].cpu()
             target = data['target_img'].data[:, [2,1,0], :, :].cpu()
