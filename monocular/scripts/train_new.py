@@ -24,16 +24,18 @@ configs['encoder_features'] = 32
 configs['encoder_ouput_features'] = 64
 configs['input_channels'] = 3
 configs['out_put_channels'] = 3
+configs['num_features'] = 16
+configs['occlusion_levels'] = 3
 
 ## Dataset related settings
-is_teddy = True
+is_teddy = False
 if is_teddy:
     # configs['dataset_root'] = '/home/anwar/data/KITTI_Odometry/dataset'
     configs['dataset_root'] = '/data/teddy/KITTI_Odometry/dataset'
     configs['logging_dir'] = '/habtegebrialdata/monocular_nvs/experiment_logs/exp_1_with_bn_new_alpha_comp'
 else:
     configs['dataset_root'] = '/home/anwar/data/KITTI_Odometry/dataset'
-    configs['logging_dir'] = '/home/anwar/data/experiments/exp5'
+    configs['logging_dir'] = '/home/anwar/data/experiments/exp_KITTI_GAN_LOSS'
 
 configs['mode'] = 'train'
 configs['max_baseline'] = 2
@@ -52,16 +54,16 @@ test_loader = DataLoader(dataset=test_dataset,
                          )
 
 monocular_nvs_network = StereoMagnification(configs).float().cuda(0)
-gen_optimizer = torch.optim.Adam(monocular_nvs_network.parameters(), lr=gan_opts['lr_gen'], betas=(0.9, 0.999))
+gen_optimizer = torch.optim.Adam(monocular_nvs_network.parameters(), lr=gan_opts.lr_gen, betas=(0.9, 0.999))
 gen_optimizer.zero_grad()
 
 
 discriminator = MultiscaleDiscriminator(gan_opts).cuda(0)
-disc_optimizer = torch.optim.Adam(discriminator.parameters(), lr=gan_opts['lr_disc'], betas=(0.9, 0.999))
+disc_optimizer = torch.optim.Adam(discriminator.parameters(), lr=gan_opts.lr_disc, betas=(0.9, 0.999))
 disc_optimizer.zero_grad()
 
 trainer = Trainer(gan_opts).cuda(0)
-trainer.initialise(monocular_nvs_network, disc_optimizer)
+trainer.initialise(monocular_nvs_network, discriminator)
 
 
 models_dir = os.path.join(configs['logging_dir'], 'models')
@@ -71,11 +73,16 @@ print('Logging info: ', configs['logging_dir'])
 
 torch.autograd.set_detect_anomaly(True)
 
+a = 0
+b = 1
+min_val = -1
+max_val = 1
+
 for epoch in range(configs['num_epochs']):
     print(f'Epoch number = {epoch}')
     for itr, data in tqdm.tqdm(enumerate(train_loader), total=len(train_loader)):
         data = {k:v.float().cuda(0) for k,v in data.items()}
-        gen_losses = trainer(data, mode='generator')
+        gen_losses = trainer(data, mode='generator')[0]
         gen_l = sum([v for k,v in gen_losses.items()]).mean()
         gen_l.backward()
         gen_optimizer.step()
@@ -91,9 +98,9 @@ for epoch in range(configs['num_epochs']):
         print(f'epoch {epoch} iteration {itr}     generator  loss {gen_print}')
         print(f'epoch {epoch} iteration {itr}  discriminator loss {disc_print}')
         if(steps % 200 == 0):
-            novel_view = novel_view.data[:, [2,1,0], :, :].cpu()
-            target = data['target_img'].data[:, [2,1,0], :, :].cpu()
-            input_img = data['input_img'].data[:, [2,1,0], :, :].cpu()
+            novel_view = a + (novel_view.data[:, [2,1,0], :, :].cpu() - min_val) * (b - a)/(max_val - min_val) 
+            target = a + (data['target_img'].data[:, [2,1,0], :, :].cpu() - min_val) * (b - a)/(max_val - min_val) 
+            input_img = a + (data['input_img'].data[:, [2,1,0], :, :].cpu() - min_val) * (b - a)/(max_val - min_val)
             torchvision.utils.save_image(novel_view, os.path.join(configs['logging_dir'], str(steps) +'_novel.png'))
             torchvision.utils.save_image(target, os.path.join(configs['logging_dir'], str(steps) +'_target.png'))
             torchvision.utils.save_image(input_img, os.path.join(configs['logging_dir'], str(steps) +'_input.png'))

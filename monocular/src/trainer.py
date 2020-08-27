@@ -1,5 +1,6 @@
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 
 from .losses import GANLoss
 from .losses import SynthesisLoss
@@ -61,9 +62,9 @@ class Trainer(nn.Module):
         # print('compute_generator_loss:', fake_image.shape, target_img.shape)
         pred_fake, pred_real = self.discriminate(fake_image, target_img)
         gen_losses['GAN'] = sum(self.get_gan_loss(pred_fake, True, for_discriminator=False))
-        if not self.opts.no_ganFeat_loss:
+        if not self.configs.no_ganFeat_loss:
             num_D = len(pred_fake)
-            GAN_Feat_loss = self.FloatTensor(1).fill_(0).to(device_)
+            GAN_Feat_loss = torch.FloatTensor(1).fill_(0).to(device_)
             for i in range(num_D):
                 # for each discriminator
                 # last output is the final prediction, so we exclude it
@@ -71,7 +72,7 @@ class Trainer(nn.Module):
                 for j in range(num_intermediate_outputs): # for each layer output
                     unweighted_loss = F.l1_loss(
                         pred_fake[i][j], pred_real[i][j].detach())
-                    GAN_Feat_loss += unweighted_loss * self.opts.lambda_feat / num_D
+                    GAN_Feat_loss += unweighted_loss * self.configs.lambda_feat / num_D
             gen_losses['GAN_Feat'] = sum(GAN_Feat_loss)
         return gen_losses
 
