@@ -141,7 +141,14 @@ class KittiLoader(Dataset):
         img = cv.resize(img, (w, h))
         # print(img.shape)
         fx_ratio, fy_ratio = w/w_org, h/h_org
-        return torch.from_numpy(img).float().permute(2, 0, 1)/255.0, [fx_ratio, fy_ratio]
+        
+        a = - 1
+        b = 1
+        min_val = 0
+        max_val = 255
+        img = torch.from_numpy(img).float().permute(2, 0, 1)
+
+        return a + (img - min_val) * (b - a)/(max_val - min_val), [fx_ratio, fy_ratio]
 
     def _get_ref_target_pair(self, src_frame):
         frame_path = Path(src_frame)
