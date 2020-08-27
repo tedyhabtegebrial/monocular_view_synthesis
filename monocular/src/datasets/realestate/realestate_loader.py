@@ -16,9 +16,9 @@ class RealEstateLoader(Dataset):
 		self.indices = np.loadtxt(os.path.join(self.dir, 'valid_folders_%s.txt' %self.mode) , dtype=np.str)
 		self.indices = self.indices.reshape((-1,))
 		#print('Paths', glob.glob(os.path.join(self.dir, 'extracted', self.mode, self.indices[0], '*.jpg')))
-		#print('Indices', self.indices)
-		self.frames = sorted(np.array([glob.glob(os.path.join(self.dir, 'extracted', self.mode, id, '*.jpg')) for id in self.indices]).flatten())
-		self.text = sorted(np.array([glob.glob(os.path.join(self.dir, 'text_files', self.mode, id, '*.txt')) for id in self.indices]).flatten())
+		print('Indices', self.indices)
+		self.frames = sorted(np.array([glob.glob(os.path.join(self.dir, 'extracted', self.mode, id + '.txt', '*.jpg')) for id in self.indices]).flatten())
+		self.text = sorted(np.array([glob.glob(os.path.join(self.dir, 'text_files', self.mode, id + '.txt', '*.txt')) for id in self.indices]).flatten())
 		#print('Frames', self.frames)
 		# self.frames = [os.path.join(self.dir, 'extracted', self.mode, clip, frame) for clip in self.indices]
 		# self.text = [os.path.join(self.dir, 'text_files', self.mode, clip, frame) for clip in self.indices]
@@ -30,6 +30,8 @@ class RealEstateLoader(Dataset):
 								Resize((self.configs['width'], self.configs['height'])),
 								ToTensor()
 								])
+
+		print(len(self.frames))
 
 	def __getitem__(self, index):
 		src_frame = self.frames[index]
