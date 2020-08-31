@@ -57,6 +57,10 @@ class RealEstateLoader(Dataset):
 		seq = Path(src_frame).parent
 		src_idx = Path(src_frame).stem
 
+		print('PRINTING')
+		print(src_idx)
+		print(seq)
+
 		intrinsics_path = os.path.join(seq, 'intrinsics.txt')
 		extrinsics_path = os.path.join(seq, 'extrinsics.txt')
 
@@ -64,6 +68,8 @@ class RealEstateLoader(Dataset):
 			intrinsics = json.load(data)
 		with open(extrinsics_path, 'r') as data:
 			extrinsics = json.load(data)
+
+		text_file = np.loadtxt()
 
 		#print(intrinsics)
 
