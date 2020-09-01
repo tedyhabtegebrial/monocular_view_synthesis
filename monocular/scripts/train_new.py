@@ -8,7 +8,7 @@ from .gan_opts import arg_parser
 from torch.utils.data import Dataset, DataLoader
 sys.path.append('../')
 from monocular.src import StereoMagnification
-from monocular.src import KittiLoader
+from monocular.src import KittiLoader, RealEstateLoader
 from monocular.src import Trainer
 from monocular.src import MultiscaleDiscriminator
 gan_opts = arg_parser.parse_args()
@@ -34,24 +34,25 @@ if is_teddy:
     configs['dataset_root'] = '/data/teddy/KITTI_Odometry/dataset'
     configs['logging_dir'] = '/habtegebrialdata/monocular_nvs/experiment_logs/exp_1_with_bn_new_alpha_comp'
 else:
-    configs['dataset_root'] = '/home/anwar/data/KITTI_Odometry/dataset'
-    configs['logging_dir'] = '/home/anwar/data/experiments/exp_KITTI_GAN_LOSS'
+    configs['dataset_root'] = '/home5/anwar/data/realestate10k'
+    configs['logging_dir'] = '/home5/anwar/data/experiments/exp_ReSt_GAN_LOSS'
 
 configs['mode'] = 'train'
 configs['max_baseline'] = 2
 configs['num_epochs'] = 10
 
-train_dataset = KittiLoader(configs)
+#train_dataset = KittiLoader(configs)
+train_dataset = RealEstateLoader(configs)
 train_loader = DataLoader(dataset=train_dataset,
                          batch_size=configs['batch_size'],
                          shuffle=True,
                          num_workers=max(1, configs['batch_size']//2),
                          )
-test_dataset = KittiLoader({**configs, 'mode':'test'})
-test_loader = DataLoader(dataset=test_dataset,
-                         batch_size=1,
-                         shuffle=False,
-                         )
+#test_dataset = KittiLoader({**configs, 'mode':'test'})
+#test_loader = DataLoader(dataset=test_dataset,
+#                         batch_size=1,
+#                         shuffle=False,
+#                         )
 
 monocular_nvs_network = StereoMagnification(configs).float().cuda(0)
 gen_optimizer = torch.optim.Adam(monocular_nvs_network.parameters(), lr=gan_opts.lr_gen, betas=(0.9, 0.999))
