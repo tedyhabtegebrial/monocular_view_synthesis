@@ -16,10 +16,19 @@ class RealEstateLoader(Dataset):
 		self.indices = np.loadtxt(os.path.join(self.dir, 'valid_folders_%s.txt' %self.mode) , dtype=np.str)
 		self.indices = self.indices.reshape((-1,))
 		#print('Paths', glob.glob(os.path.join(self.dir, 'extracted', self.mode, self.indices[0], '*.jpg')))
-		print('Indices', self.indices)
-		self.frames = sorted(np.array([glob.glob(os.path.join(self.dir, 'extracted', self.mode, id + '.txt', '*.jpg')) for id in self.indices]).flatten())
-		self.text = sorted(np.array([glob.glob(os.path.join(self.dir, 'text_files', self.mode, id + '.txt', '*.txt')) for id in self.indices]).flatten())
-		#print('Frames', self.frames)
+		#print('Indices', len(self.indices))
+		#self.indices = self.indices[:5]
+		self.frames = [glob.glob(os.path.join(self.dir, 'extracted', self.mode, id + '.txt', '*.jpg')) for id in self.indices]
+		#self.text = [glob.glob(os.path.join(self.dir, 'text_files', self.mode, id + '.txt', '*.txt')) for id in self.indices]
+		#print('ff', len(self.frames))
+		self.frames = np.array([np.array(y) for x in self.frames for y in x])
+		#self.text = np.array([np.array(y) for x in self.text for y in x])
+		#print('ff', len(self.frames))
+		self.text_dir = os.path.join(self.dir, 'text_files', self.mode)
+		#self.frames = self.frames.flatten()
+		#self.text = self.text.flatten()
+		#print('ss', len(self.text))
+		#print('Frames', self.frames[:2])
 		# self.frames = [os.path.join(self.dir, 'extracted', self.mode, clip, frame) for clip in self.indices]
 		# self.text = [os.path.join(self.dir, 'text_files', self.mode, clip, frame) for clip in self.indices]
 
@@ -31,11 +40,11 @@ class RealEstateLoader(Dataset):
 								ToTensor()
 								])
 
-		print(len(self.frames))
+		#print(len(self.frames))
 
 	def __getitem__(self, index):
 		src_frame = self.frames[index]
-		print('src_frame', src_frame)
+		#print('src_frame', src_frame)
 		_, target_frame, k_matrix, r_rel, t_rel = self._get_target_frame_and_poses(src_frame)
 
 		src_img = self.transform(Image.open(src_frame))
@@ -56,25 +65,27 @@ class RealEstateLoader(Dataset):
 	def _get_target_frame_and_poses(self, src_frame):
 		seq = Path(src_frame).parent
 		src_idx = Path(src_frame).stem
+		text_path = os.path.join(self.text_dir, seq.stem + '.txt')
+		#print('PRINTING')
+		#print(src_idx)
+		#print(seq.stem)
+		#print('text file', text_path)
 
-		print('PRINTING')
-		print(src_idx)
-		print(seq)
+		#intrinsics_path = os.path.join(seq, 'intrinsics.txt')
+		#extrinsics_path = os.path.join(seq, 'extrinsics.txt')
 
-		intrinsics_path = os.path.join(seq, 'intrinsics.txt')
-		extrinsics_path = os.path.join(seq, 'extrinsics.txt')
+		#with open(intrinsics_path, 'r') as data:
+		#	intrinsics = json.load(data)
+		#with open(extrinsics_path, 'r') as data:
+		#	extrinsics = json.load(data)
 
-		with open(intrinsics_path, 'r') as data:
-			intrinsics = json.load(data)
-		with open(extrinsics_path, 'r') as data:
-			extrinsics = json.load(data)
-
-		text_file = np.loadtxt()
-
+		text_file = np.loadtxt(text_path, comments='https')
+		intrinsics = text_file[int(src_idx), 1:6]
+		extrinsics = text_file[int(src_idx), 6:]
 		#print(intrinsics)
 
-		seq_len = len(intrinsics)
-		#print('seq_len', seq_len)
+		seq_len = len(text_file)
+		#print('seq_len', text_file.shape)
 
 		max_offset = min(self.configs['max_baseline'], len(intrinsics))
 		assert max_offset>0, 'offset should be atleast 1'
@@ -90,11 +101,11 @@ class RealEstateLoader(Dataset):
 		target_idx = min(target_idx, seq_len - 1)
 		target_frame = os.path.join(seq, str(target_idx).zfill(4) + '.jpg')
 
-		k_matrix = self._get_intrinsics(intrinsics[src_idx])
+		k_matrix = self._get_intrinsics(intrinsics)
+		extrinsics_t = text_file[int(target_idx)][6:]
+		pose_src = self._get_extrinsics(extrinsics)
+		pose_target = self._get_extrinsics(extrinsics_t)
 
-		pose_src = self._get_extrinsics(extrinsics[src_idx])
-		pose_target = self._get_extrinsics(extrinsics[str(target_idx).zfill(4)])
-		
 		r_rel, t_rel = self._get_relative_pose(pose_src, pose_target)
 
 		return src_frame, target_frame, k_matrix, r_rel, t_rel
@@ -105,16 +116,17 @@ class RealEstateLoader(Dataset):
 		r_rel = torch.mm(r_target.transpose(1, 0), r_src)
 		t_rel = torch.mm(r_target.transpose(1,0), (t_src - t_target).view(3, 1))
 
-		return r_rel, t_rel 
+		return r_rel, t_rel
 
 	def _get_intrinsics(self, intrinsics):
 		w, h = self.configs['width'], self.configs['height']
 		intrinsics = np.array(intrinsics, dtype=np.float32)
-		print('intrinsics', intrinsics)
+		#print('intrinsics', intrinsics)
 		intrinsics = np.array([[intrinsics[0] * w, 0, intrinsics[2] * w],
 					[0, intrinsics[1] * h, intrinsics[3] * h],
 					[0, 0, 1]],
 					dtype=np.float32)
+		#print('intrinsics', intrinsics)
 		return torch.Tensor(intrinsics)
 
 	def _get_extrinsics(self, extrinsics):
@@ -126,7 +138,7 @@ class RealEstateLoader(Dataset):
 
 if __name__ == '__main__':
 	configs = {}
-	configs['dataset_root'] = '/home/anwar/Desktop/realestate10k'
+	configs['dataset_root'] = '/home5/anwar/data/realestate10k/'
 	configs['mode'] = 'train'
 	configs['max_baseline'] = 5
 	configs['height'] = 10
