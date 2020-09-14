@@ -32,7 +32,7 @@ if is_teddy:
 else:
     # configs['dataset_root'] = '/home/anwar/data/KITTI_Odometry/dataset'
     configs['dataset_root'] = '/home5/anwar/data/realestate10k/'
-    configs['logging_dir'] = '/home5/anwar/data/experiments/exp9'
+    configs['logging_dir'] = '/home5/anwar/data/experiments/exp_ReSt_GAN_LOSS'
 
 configs['mode'] = 'train'
 configs['max_baseline'] = 3

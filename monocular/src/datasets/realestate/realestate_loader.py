@@ -7,19 +7,21 @@ import random
 import torch
 from PIL import Image
 from torchvision.transforms import Compose, ToTensor, Resize
+from math import sqrt
 
+seed = 42
 class RealEstateLoader(Dataset):
 	def __init__(self, configs):
 		self.configs = configs
 		self.dir = self.configs['dataset_root'] #/home5/anwar/data/realestate10k/
 		self.mode = configs['mode']
-		self.indices = np.loadtxt(os.path.join(self.dir, 'valid_folders_%s.txt' %self.mode) , dtype=np.str)
+		self.indices = np.loadtxt(os.path.join(self.dir, 'valid_folders_%s2.txt' %self.mode) , dtype=np.str)
 		self.indices = self.indices.reshape((-1,))
 		#print('Paths', glob.glob(os.path.join(self.dir, 'extracted', self.mode, self.indices[0], '*.jpg')))
 		#print('Indices', len(self.indices))
 		#self.indices = self.indices[:5]
 		self.frames = [glob.glob(os.path.join(self.dir, 'extracted', self.mode, id + '.txt', '*.jpg')) for id in self.indices]
-		#self.text = [glob.glob(os.path.join(self.dir, 'text_files', self.mode, id + '.txt', '*.txt')) for id in self.indices]
+		#self.text = [glob.glob(os.path.join(self.dir, 'text_files', self.mode, id + '.txt')) for id in self.indices]
 		#print('ff', len(self.frames))
 		self.frames = np.array([np.array(y) for x in self.frames for y in x])
 		#self.text = np.array([np.array(y) for x in self.text for y in x])
@@ -34,6 +36,7 @@ class RealEstateLoader(Dataset):
 
 		self.min_angle = 5
 		self.min_trans = 0.15
+		self.rng = np.random.RandomState(seed)
 
 		self.transform = Compose([
 								Resize((self.configs['width'], self.configs['height'])),
@@ -56,6 +59,11 @@ class RealEstateLoader(Dataset):
 		data_dict['k_mats'] = k_matrix
 		data_dict['r_mats'] = r_rel
 		data_dict['t_vecs'] = t_rel
+
+		#print('k', k_matrix)
+		#print('r', r_rel)
+		#print('r det', np.linalg.det(r_rel.numpy()))
+		#print('t', t_rel)
 
 		return data_dict
 
@@ -80,30 +88,55 @@ class RealEstateLoader(Dataset):
 		#	extrinsics = json.load(data)
 
 		text_file = np.loadtxt(text_path, comments='https')
-		intrinsics = text_file[int(src_idx), 1:6]
-		extrinsics = text_file[int(src_idx), 6:]
-		#print(intrinsics)
+		#print(text_file.shape)
+		intrinsics = text_file[int(src_idx), 1:7]
+		extrinsics = text_file[int(src_idx), 7:]
+		#print(intrinsics.shape, extrinsics.shape)
+		k_matrix = self._get_intrinsics(intrinsics)
+		pose_src = self._get_extrinsics(extrinsics)
 
 		seq_len = len(text_file)
 		#print('seq_len', text_file.shape)
 
-		max_offset = min(self.configs['max_baseline'], len(intrinsics))
-		assert max_offset>0, 'offset should be atleast 1'
 
-		offset = 1
-		if max_offset > 1:
-			offset = random.randint(1, max_offset-1)
-		if random.random() > 0.5:
-			offset = -offset
+		# Chose 15 images within 30 frames of the iniital one
+		target_candidates = self.rng.randint(self.configs['max_baseline'] * 2, size=(self.configs['max_baseline'])) - self.configs['max_baseline']//2 + int(src_idx)
+		target_candidates = np.minimum(np.maximum(target_candidates, 0), seq_len - 1)
 
-		target_idx = int(src_idx) + offset
-		target_idx = max(0, target_idx)
-		target_idx = min(target_idx, seq_len - 1)
+		#max_offset = min(self.configs['max_baseline'], len(intrinsics))
+		#assert max_offset>0, 'offset should be atleast 1'
+
+		#offset = 1
+		#if max_offset > 1:
+		#	offset = self.rng.randint(1, max_offset-1)
+		#if self.rng.random() > 0.5:
+		#	offset = -offset
+
+		#target_idx = int(src_idx) + offset
+		#target_idx = max(0, target_idx)
+		#target_idx = min(target_idx, seq_len - 1)
+		angles = []
+		translations = []
+
+		for cand in target_candidates:
+			pose_cand = self._get_extrinsics(text_file[cand][7:])
+			dang, dtrans = self._get_deltas(pose_src, pose_cand)
+			angles += [dang]
+			translations += [dtrans]
+
+		angles = np.array(angles)
+		translations = np.array(translations)
+
+		mask = target_candidates[(angles > self.min_angle) | (translations > self.min_trans)]
+
+		if(mask.shape[0] > 2):
+			target_idx = mask[self.rng.randint(mask.shape[0])]
+		else:
+			target_idx = target_candidates[self.rng.randint(target_candidates.shape[0])]
+
 		target_frame = os.path.join(seq, str(target_idx).zfill(4) + '.jpg')
 
-		k_matrix = self._get_intrinsics(intrinsics)
-		extrinsics_t = text_file[int(target_idx)][6:]
-		pose_src = self._get_extrinsics(extrinsics)
+		extrinsics_t = text_file[int(target_idx)][7:]
 		pose_target = self._get_extrinsics(extrinsics_t)
 
 		r_rel, t_rel = self._get_relative_pose(pose_src, pose_target)
@@ -130,11 +163,24 @@ class RealEstateLoader(Dataset):
 		return torch.Tensor(intrinsics)
 
 	def _get_extrinsics(self, extrinsics):
-		extrinsics = np.array([[extrinsics[0], extrinsics[1], extrinsics[2], extrinsics[3]],
-					[extrinsics[4], extrinsics[5], extrinsics[6], extrinsics[7]],
-					[extrinsics[8], extrinsics[9], extrinsics[10], extrinsics[11]]],
-					dtype=np.float32)
+		#print(extrinsics)
+		extrinsics = np.array(extrinsics, dtype=np.float32).reshape((3,4))
 		return torch.Tensor(extrinsics)
+
+	def _get_deltas(self, mat1, mat2):
+		mat1 = np.vstack([mat1, np.array([0,0,0,1])])
+		mat2 = np.vstack([mat2, np.array([0,0,0,1])])
+
+		dmat = np.matmul(np.linalg.inv(mat1), mat2)
+		dtrans = dmat[:3, 3]**2
+		dtrans = sqrt(dtrans.sum())
+
+		orgVec = np.array([[0],[0],[1]])
+		rotVec = np.matmul(dmat[:3, :3], orgVec)
+		arcos = (rotVec * orgVec).sum() / sqrt((rotVec**2).sum())
+		dangle = np.arccos(arcos) * 180.0/np.pi
+
+		return dangle, dtrans
 
 if __name__ == '__main__':
 	configs = {}
