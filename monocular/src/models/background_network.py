@@ -48,26 +48,26 @@ class BackgroundNetwork(nn.Module):
 
 	def forward(self, rgb):
 		# Encoding
-		conv1 = F.relu((self.conv_1_1(F.relu(self.conv_1_0(rgb)))))
+		conv1 = self.bn_1(F.relu((self.conv_1_1(F.relu(self.conv_1_0(rgb))))))
 
-		conv2 = F.relu((self.conv_2_1(F.relu(self.conv_2_0(F.max_pool2d(conv1, kernel_size=2))))))
+		conv2 = self.bn_2(F.relu((self.conv_2_1(F.relu(self.conv_2_0(F.max_pool2d(conv1, kernel_size=2)))))))
 
-		conv3 = F.relu((self.conv_3_1(F.relu(self.conv_3_0(F.max_pool2d(conv2, kernel_size=2))))))
+		conv3 = self.bn_3(F.relu((self.conv_3_1(F.relu(self.conv_3_0(F.max_pool2d(conv2, kernel_size=2)))))))
 
-		conv4 = F.relu((self.conv_4_1(F.relu(self.conv_4_0(F.max_pool2d(conv3, kernel_size=2))))))
+		conv4 = self.bn_4(F.relu((self.conv_4_1(F.relu(self.conv_4_0(F.max_pool2d(conv3, kernel_size=2)))))))
 
 		# Decoding
 		up_4 = F.interpolate(conv4, scale_factor=2, mode='nearest')
-		conv5 = F.relu((self.conv_5_1(F.relu(self.conv_5_0(torch.cat([up_4, conv3], dim=1))))))
+		conv5 = self.bn_5(F.relu((self.conv_5_1(F.relu(self.conv_5_0(torch.cat([up_4, conv3], dim=1)))))))
 
 		up_5 = F.interpolate(conv5, scale_factor=2, mode='nearest')
-		conv6 = F.relu((self.conv_6_1(F.relu(self.conv_6_0(torch.cat([up_5, conv2], dim=1))))))
+		conv6 = self.bn_6(F.relu((self.conv_6_1(F.relu(self.conv_6_0(torch.cat([up_5, conv2], dim=1)))))))
 
 		up_6 = F.interpolate(conv6, scale_factor=2, mode='nearest')
-		conv7 = F.relu((self.conv_7_1(F.relu(self.conv_7_0(torch.cat([up_6, conv1], dim=1))))))
+		conv7 = self.bn_7(F.relu((self.conv_7_1(F.relu(self.conv_7_0(torch.cat([up_6, conv1], dim=1)))))))
 
 		output = self.output(conv7)
-		
+
 		if(not self.reduce):
 			return torch.sigmoid(output)
 
