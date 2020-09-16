@@ -36,7 +36,7 @@ if is_teddy:
     configs['logging_dir'] = '/habtegebrialdata/monocular_nvs/experiment_logs/exp_1_with_bn_new_alpha_comp'
 else:
     configs['dataset_root'] = '/home5/anwar/data/realestate10k'
-    configs['logging_dir'] = '/home5/anwar/data/experiments/exp_ReSt_GAN_LOSS_BL26'
+    configs['logging_dir'] = '/home5/anwar/data/experiments/exp_ReSt_GAN_LOSS_BL26_2'
 
 configs['mode'] = 'train'
 configs['max_baseline'] = 26
