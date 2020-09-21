@@ -9,6 +9,13 @@ class SingleViewNetwork_DFKI(nn.Module):
 		m.bias = nn.init.zeros_(m.bias)
 		return m
 
+	def apply_harmonic_bias(self, channels, num_layers):
+		alpha = 1.0 / torch.range(2, num_layers + 1, dtype=torch.float32)
+		shift = torch.atanh(2.0 * alpha - 1.0)
+		no_shift = torch.zeros(channels.shape[-1] - num_layers + 1)
+		shift = torch.concat([shift, no_shift], axis=-1)
+		return channels + shift
+
 	def __init__(self, configs):
 		super(SingleViewNetwork_DFKI, self).__init__()
 
@@ -19,10 +26,10 @@ class SingleViewNetwork_DFKI(nn.Module):
 		self.conv_2_1 = nn.Conv2d(in_channels=64, out_channels=64, kernel_size=5, padding=2)
 		self.bn_2 = nn.BatchNorm2d(64)
 		self.conv_3_0 = nn.Conv2d(in_channels=64, out_channels=128, kernel_size=3, padding=1)
-		self.conv_3_1 = nn.Conv2d(in_channels=128, out_channels=118, kernel_size=3, padding=1)
-		self.bn_3 = nn.BatchNorm2d(118)
+		self.conv_3_1 = nn.Conv2d(in_channels=128, out_channels=128, kernel_size=3, padding=1)
+		self.bn_3 = nn.BatchNorm2d(128)
 
-		self.conv_4_0 = nn.Conv2d(in_channels=118, out_channels=256, kernel_size=3, padding=1)
+		self.conv_4_0 = nn.Conv2d(in_channels=128, out_channels=256, kernel_size=3, padding=1)
 		self.conv_4_1 = nn.Conv2d(in_channels=256, out_channels=256, kernel_size=3, padding=1)
 		self.bn_4 = nn.BatchNorm2d(256)
 
@@ -58,7 +65,7 @@ class SingleViewNetwork_DFKI(nn.Module):
 		self.conv_12_1 = nn.Conv2d(in_channels=512, out_channels=512, kernel_size=3, padding=1)
 		self.bn_12 = nn.BatchNorm2d(512)
 
-		self.conv_13_0 = nn.Conv2d(in_channels=512 + 118, out_channels=128, kernel_size=3, padding=1)
+		self.conv_13_0 = nn.Conv2d(in_channels=512 + 128, out_channels=128, kernel_size=3, padding=1)
 		self.conv_13_1 = nn.Conv2d(in_channels=128, out_channels=128, kernel_size=3, padding=1)
 		self.bn_13 = nn.BatchNorm2d(128)
 
@@ -74,7 +81,7 @@ class SingleViewNetwork_DFKI(nn.Module):
 		self.conv_16_1 = nn.Conv2d(in_channels=64, out_channels=64, kernel_size=3, padding=1)
 		self.bn_16 = nn.BatchNorm2d(64)
 		# self.batch16 = nn.BatchNorm2d(64)
-		self.output = nn.Conv2d(in_channels=64, out_channels=configs['num_planes']  + configs['occlusion_levels'] * configs['num_planes'], kernel_size=3, padding=1)
+		self.output = nn.Conv2d(in_channels=64, out_channels=configs['num_planes'] + 2, kernel_size=3, padding=1)
 
 
 	def forward(self, rgb):
@@ -118,11 +125,13 @@ class SingleViewNetwork_DFKI(nn.Module):
 		conv15 = F.relu((self.conv_15_1(F.relu(self.conv_15_0(torch.cat([up_14, conv1], dim=1))))))
 
 		conv16 = F.relu((self.conv_16_1(F.relu(self.conv_16_0(conv15)))))
-		conv16 = self.bn_16(conv16)
+		# conv16 = self.bn_16(conv16)
 
 		output = self.output(conv16)
+		output = self.apply_harmonic_bias(output, self.configs['num_planes'])
 		# print('alpha values:', output[:, :self.configs['num_planes'], :, :].min().item(), output[:, :self.configs['num_planes'], :, :].max().item())
-		return torch.sigmoid(output)
+		# return torch.sigmoid(output)
+		return (torch.tanh(output) + 1.0) / 2.0
 
 
 if __name__ == '__main__':
