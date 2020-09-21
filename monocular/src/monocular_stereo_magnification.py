@@ -44,7 +44,7 @@ class StereoMagnification(nn.Module):
         color_imgs = fg*weight + (1.0-weight)*bg
         return color_imgs
 
-    def forward(self, input_img, kmats, rmats, tvecs):
+    def forward2(self, input_img, kmats, rmats, tvecs):
         # print(input_img.shape)
         b, c, h, w = input_img.shape
         alphas_assoc = self.mpi_net(input_img)
@@ -59,7 +59,7 @@ class StereoMagnification(nn.Module):
         rgb_img = self.reduce_high_features(warped_features)
         return rgb_img, alphas
 
-    def forward2(self, input_img, kmats, rmats, tvecs):
+    def forward(self, input_img, kmats, rmats, tvecs):
          '''The pytorch interface __call__ function. All inputs are tensors
     #     :param input_img: \\in [B, 3, H, W] where B is batch size, H,W are image dimensions
     #     :param kmats:     Camera intriciscs  \\in [B, 3, 3]
@@ -70,7 +70,21 @@ class StereoMagnification(nn.Module):
         '''
 
 
-         #mpi_alphas_bg_img = self.mpi_net(input_img)
+        mpi_alphas_bg_img = self.mpi_net(input_img)
+        alpha = torch.transpose(mpi_alphas_bg_img, 1, 2)[:, :-3,...].unsqueeze(-1)
+        layer_alpha = torch.cat([torch.ones_like(alpha[:, 0:1]), alpha], axis=1)
+
+        fg_img = input_img.unsqueeze(-1)
+        bg_img = mpi_alphas_bg_img[...,-3:].unsqueeze(1)
+
+        blending_weights = torch.cumprod(1.0 - torch.flip(alpha, dims=[1]), axis = 1) / torch.flip(alpha, dims=[1])
+        layer_rgb = blending_weights * fg_img + (1.0 - blending_weights) * bg_img
+        layers = torch.cat([layer_rgb, layer_alpha], axis = -1)
+
+        h_mats = self.compute_homography(kmats, rmats, tvecs)
+
+        rgb_img = self._render_rgb(h_mats, layer_alpha, layer_rgb)
+        return rgb_img
          #b, d, h, w = mpi_alphas_bg_img.shape
          # print('mpi_alphas_bg_img', mpi_alphas_bg_img.shape)
          #ones_ = torch.ones(b, 1, 1, h, w).to(mpi_alphas_bg_img.device)
@@ -87,21 +101,22 @@ class StereoMagnification(nn.Module):
          # print('bg_img', bg_img.shape)
          #blending_weights = self.ComputeBlendingWeights(mpi_alpha)
 
-         mpi_alpha, blending_weights, bg_img = self.mpi_net(input_img)
-         h_mats = self.compute_homography(kmats, rmats, tvecs)
-         fg_img = input_img
-         # here mistake
-         color_imgs_ref_cam = self._get_color_imgs_per_plane(fg_img, bg_img, blending_weights)
-         pred_img, alphas = self._render_rgb(h_mats, mpi_alpha, color_imgs_ref_cam)
-    #     # print(tvecs)
-
-         if self.training:
-             return pred_img, alphas
-         else:
-             return pred_img
+    #      mpi_alpha, blending_weights, bg_img = self.mpi_net(input_img)
+    #      h_mats = self.compute_homography(kmats, rmats, tvecs)
+    #      fg_img = input_img
+    #      # here mistake
+    #      color_imgs_ref_cam = self._get_color_imgs_per_plane(fg_img, bg_img, blending_weights)
+    #      pred_img, alphas = self._render_rgb(h_mats, mpi_alpha, color_imgs_ref_cam)
+    # #     # print(tvecs)
+    #
+    #      if self.training:
+    #          return pred_img, alphas
+    #      else:
+    #          return pred_img
 
     def _render_rgb(self, h_mats, mpi_alpha_seg, color_imgs_ref_cam):
-        alphas = torch.sigmoid(mpi_alpha_seg)
+        # alphas = torch.sigmoid(mpi_alpha_seg)
+        alphas = mpi_alpha_seg
         color_imgs = self.apply_homography(h_mats, color_imgs_ref_cam)
         warped_alphas = self.apply_homography(h_mats, alphas)
         output_rgb = self.composite(color_imgs, warped_alphas)
@@ -118,12 +133,12 @@ class StereoMagnification(nn.Module):
 
         # print('Warped mult layer features', warped_mult_layer_features.shape)
         # print('Warped assoc shape', warped_assoc.shape)
-        composite_assoc = self.composite(warped_assoc, warped_alphas) 
+        composite_assoc = self.composite(warped_assoc, warped_alphas)
         # print('Composite assoc shape', composite_assoc.shape)
         composite_assoc = composite_assoc / torch.sum(composite_assoc, dim=1, keepdim=True).clamp(min=1e-06)
-        
+
         warped_features = warped_mult_layer_features * composite_assoc.unsqueeze(2)
-        
+
         # output_rgb = self.composite(color_imgs, warped_alphas)
         return warped_features.sum(dim=1, keepdim=False), alphas
 
@@ -134,7 +149,7 @@ if __name__=='__main__':
     configs['height'] = 256
     configs['batch_size'] = 1
     configs['num_planes'] = 64
-    configs['occlusion_levels'] = 3 
+    configs['occlusion_levels'] = 3
     configs['num_features'] = 16
     configs['near_plane'] = 5
     configs['far_plane'] = 10000
