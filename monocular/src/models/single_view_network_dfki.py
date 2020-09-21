@@ -11,6 +11,7 @@ class SingleViewNetwork_DFKI(nn.Module):
 
 	def apply_harmonic_bias(self, channels, num_layers):
 		alpha = 1.0 / torch.range(2, num_layers + 1, dtype=torch.float32)
+		print('alpha shape', alpha.shape)
 		shift = torch.atanh(2.0 * alpha - 1.0)
 		no_shift = torch.zeros(channels.shape[-1] - num_layers + 1)
 		shift = torch.concat([shift, no_shift], axis=-1)
@@ -18,6 +19,7 @@ class SingleViewNetwork_DFKI(nn.Module):
 
 	def __init__(self, configs):
 		super(SingleViewNetwork_DFKI, self).__init__()
+		self.configs = configs
 
 		self.conv_1_0 = nn.Conv2d(in_channels=3, out_channels=32, kernel_size=7, padding=3)
 		self.conv_1_1 = nn.Conv2d(in_channels=32, out_channels=32, kernel_size=7, padding=3)

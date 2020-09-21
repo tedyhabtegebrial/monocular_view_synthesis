@@ -60,7 +60,7 @@ class StereoMagnification(nn.Module):
         return rgb_img, alphas
 
     def forward(self, input_img, kmats, rmats, tvecs):
-         '''The pytorch interface __call__ function. All inputs are tensors
+        '''The pytorch interface __call__ function. All inputs are tensors
     #     :param input_img: \\in [B, 3, H, W] where B is batch size, H,W are image dimensions
     #     :param kmats:     Camera intriciscs  \\in [B, 3, 3]
     #     :param rmats:     Camera intriciscs  \\in [B, 3, 3] Rotation matrix from source camera to the target camera
@@ -68,8 +68,6 @@ class StereoMagnification(nn.Module):
     #     :return pred_img: novel view color image
     #     :return alphas:   per-plane alphas, returned so that we can see what the scene representation looks like
         '''
-
-
         mpi_alphas_bg_img = self.mpi_net(input_img)
         alpha = torch.transpose(mpi_alphas_bg_img, 1, 2)[:, :-3,...].unsqueeze(-1)
         layer_alpha = torch.cat([torch.ones_like(alpha[:, 0:1]), alpha], axis=1)
