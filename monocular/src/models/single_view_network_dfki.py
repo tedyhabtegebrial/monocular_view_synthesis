@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+import math
 
 class SingleViewNetwork_DFKI(nn.Module):
 	def w_init(self, m):
@@ -10,11 +11,15 @@ class SingleViewNetwork_DFKI(nn.Module):
 		return m
 
 	def apply_harmonic_bias(self, channels, num_layers):
-		alpha = 1.0 / torch.range(2, num_layers + 1, dtype=torch.float32)
+		alpha = 1.0 / torch.range(2, num_layers, dtype=torch.float32)
 		print('alpha shape', alpha.shape)
-		shift = torch.atanh(2.0 * alpha - 1.0)
-		no_shift = torch.zeros(channels.shape[-1] - num_layers + 1)
-		shift = torch.concat([shift, no_shift], axis=-1)
+		print('channels shape', channels.shape)
+		shift = torch.Tensor([math.atanh(2.0 * x - 1.0) for x in alpha]).to(channels.device)
+		#shift = torch.atanh(2.0 * alpha - 1.0)
+		print('shift shape', shift.shape)
+		no_shift = torch.zeros(channels.shape[-1] - num_layers + 1).to(channels.device)
+		print('no shift shape', no_shift.shape)
+		shift = torch.cat([shift, no_shift], axis=-1)
 		return channels + shift
 
 	def __init__(self, configs):
@@ -130,6 +135,7 @@ class SingleViewNetwork_DFKI(nn.Module):
 		# conv16 = self.bn_16(conv16)
 
 		output = self.output(conv16)
+		output = output.permute([0,2,3,1])
 		output = self.apply_harmonic_bias(output, self.configs['num_planes'])
 		# print('alpha values:', output[:, :self.configs['num_planes'], :, :].min().item(), output[:, :self.configs['num_planes'], :, :].max().item())
 		# return torch.sigmoid(output)
