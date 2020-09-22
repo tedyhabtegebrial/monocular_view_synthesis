@@ -19,7 +19,7 @@ class RealEstateLoader(Dataset):
 		self.indices = self.indices.reshape((-1,))
 		#print('Paths', glob.glob(os.path.join(self.dir, 'extracted', self.mode, self.indices[0], '*.jpg')))
 		#print('Indices', len(self.indices))
-		#self.indices = self.indices[:5]
+		self.indices = self.indices[:5]
 		self.frames = [glob.glob(os.path.join(self.dir, 'extracted', self.mode, id + '.txt', '*.jpg')) for id in self.indices]
 		#self.text = [glob.glob(os.path.join(self.dir, 'text_files', self.mode, id + '.txt')) for id in self.indices]
 		#print('ff', len(self.frames))

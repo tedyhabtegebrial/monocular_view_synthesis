@@ -20,11 +20,11 @@ class Trainer(nn.Module):
         if mode=='generator':
             novel_view, alpha = self.generate_fake(input_data)
             # gan_losses = self.compute_generator_loss(novel_view, input_data['target_img'])
-            # self.fake = self.to_image(novel_view.data)
-            # self.real = self.to_image(input_data['target_img'].data)
+            self.fake = self.to_image(novel_view.data)
+            self.real = self.to_image(input_data['target_img'].data)
             synthesis_losses = self.synthesis_loss(novel_view, input_data['target_img'])
             # gan_losses.update(synthesis_losses)
-            return synthesis_losses
+            return synthesis_losses, novel_view, alpha
             # return gan_losses, novel_view, alpha
         elif mode=='discriminator':
             gan_losses = self.compute_discriminator_loss(input_data)

@@ -101,18 +101,18 @@ for epoch in range(configs['num_epochs']):
         gen_optimizer.zero_grad()
 #        torch.cuda.synchronize()
 #        start = time.time()
-        disc_losses = trainer(data, mode='discriminator')
+#        disc_losses = trainer(data, mode='discriminator')
 #        torch.cuda.synchronize()
 #        print('time 2', time.time() - start)
-        disc_l = sum([v for k,v in disc_losses.items()]).mean()
-        disc_l.backward()
-        disc_optimizer.step()
-        disc_optimizer.zero_grad()
-        novel_view = (trainer.fake + 1.0)/2.0
+#        disc_l = sum([v for k,v in disc_losses.items()]).mean()
+#        disc_l.backward()
+#        disc_optimizer.step()
+#        disc_optimizer.zero_grad()
+        novel_view = trainer.fake
         gen_print = {k:v.item() for k,v in gen_losses.items()}
-        disc_print = {k:v.item() for k,v in disc_losses.items()}
+#        disc_print = {k:v.item() for k,v in disc_losses.items()}
         print(f'epoch {epoch} iteration {itr}     generator  loss {gen_print}')
-        print(f'epoch {epoch} iteration {itr}  discriminator loss {disc_print}')
+#        print(f'epoch {epoch} iteration {itr}  discriminator loss {disc_print}')
         if(steps % 300 == 0):
             novel_view = novel_view.data[:, [2,1,0], :, :].cpu()
             target = a + (data['target_img'].data[:, [2,1,0], :, :].cpu() - min_val) * (b - a)/(max_val - min_val)
