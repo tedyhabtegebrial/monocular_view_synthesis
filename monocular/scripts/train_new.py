@@ -94,7 +94,7 @@ for epoch in range(configs['num_epochs']):
 #        torch.cuda.synchronize()
 #        print('time 1', time.time() - start)
 #        gen_l = sum([v for k,v in gen_losses.items()]).mean()
-        gen_l = gen_losses['Total Loss'] + gen_losses['GAN'] * gan_opts.lamda_gan
+        gen_l = gen_losses['Total Loss'] # + gen_losses['GAN'] * gan_opts.lamda_gan
         print('gen_l', gen_l.item())
         gen_l.backward()
         gen_optimizer.step()
