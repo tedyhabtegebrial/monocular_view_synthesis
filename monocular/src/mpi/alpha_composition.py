@@ -26,6 +26,9 @@ class AlphaComposition(nn.Module):
         alpha_imgs = torch.split(alpha_imgs, split_size_or_sections=1, dim=1)
         comp_rgb = src_imgs[-1] * alpha_imgs[-1]
         for d in reversed(range(num_d - 1)):
+            print('src_img', src_imgs[d].min(), src_imgs[d].max())
+            print('alpha imgs', alpha_imgs[d].min(), alpha_imgs[d].max())
+            print('comp_rgb', comp_rgb.min(), comp_rgb.max())
             comp_rgb = src_imgs[d] * alpha_imgs[d] + (1.0 - alpha_imgs[d]) * comp_rgb
         return comp_rgb.squeeze(1)
 
