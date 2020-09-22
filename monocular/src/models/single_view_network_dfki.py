@@ -12,13 +12,13 @@ class SingleViewNetwork_DFKI(nn.Module):
 
 	def apply_harmonic_bias(self, channels, num_layers):
 		alpha = 1.0 / torch.range(2, num_layers, dtype=torch.float32)
-		print('alpha shape', alpha.shape)
-		print('channels shape', channels.shape)
+		#print('alpha shape', alpha.shape)
+		#print('channels shape', channels.shape)
 		shift = torch.Tensor([math.atanh(2.0 * x - 1.0) for x in alpha]).to(channels.device)
 		#shift = torch.atanh(2.0 * alpha - 1.0)
-		print('shift shape', shift.shape)
+		#print('shift shape', shift.shape)
 		no_shift = torch.zeros(channels.shape[-1] - num_layers + 1).to(channels.device)
-		print('no shift shape', no_shift.shape)
+		#print('no shift shape', no_shift.shape)
 		shift = torch.cat([shift, no_shift], axis=-1)
 		return channels + shift
 

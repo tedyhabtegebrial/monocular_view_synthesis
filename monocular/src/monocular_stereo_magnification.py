@@ -69,18 +69,24 @@ class StereoMagnification(nn.Module):
     #     :return alphas:   per-plane alphas, returned so that we can see what the scene representation looks like
         '''
         mpi_alphas_bg_img = self.mpi_net(input_img)
-        alpha = torch.transpose(mpi_alphas_bg_img, 1, 2)[:, :-3,...].unsqueeze(-1)
+        alpha = mpi_alphas_bg_img.permute([0,3,1,2])[:, :-3,...].unsqueeze(-1)
         layer_alpha = torch.cat([torch.ones_like(alpha[:, 0:1]), alpha], axis=1)
 
-        fg_img = input_img.unsqueeze(-1)
+        fg_img = input_img.permute([0,2,3,1]).unsqueeze(1)
         bg_img = mpi_alphas_bg_img[...,-3:].unsqueeze(1)
 
-        blending_weights = torch.cumprod(1.0 - torch.flip(alpha, dims=[1]), axis = 1) / torch.flip(alpha, dims=[1])
+        flipped_alphas = torch.flip(layer_alpha, dims=[1])
+        blending_weights = torch.cumprod(1.0 - flipped_alphas, axis = 1) / flipped_alphas
+
         layer_rgb = blending_weights * fg_img + (1.0 - blending_weights) * bg_img
         layers = torch.cat([layer_rgb, layer_alpha], axis = -1)
-
         h_mats = self.compute_homography(kmats, rmats, tvecs)
 
+        layer_alpha = layer_alpha.permute([0,1,4,2,3])
+        layer_rgb = layer_rgb.permute([0,1,4,2,3])
+
+        print('layer alpha', layer_alpha.shape)
+        print('layer rgb', layer_rgb.shape)
         rgb_img = self._render_rgb(h_mats, layer_alpha, layer_rgb)
         return rgb_img
          #b, d, h, w = mpi_alphas_bg_img.shape
