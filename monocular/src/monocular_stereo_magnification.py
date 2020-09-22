@@ -85,10 +85,13 @@ class StereoMagnification(nn.Module):
         layer_alpha = layer_alpha.permute([0,1,4,2,3])
         layer_rgb = layer_rgb.permute([0,1,4,2,3])
 
-        print('layer alpha', layer_alpha.shape)
-        print('layer rgb', layer_rgb.shape)
-        rgb_img = self._render_rgb(h_mats, layer_alpha, layer_rgb)
-        return rgb_img
+        #print('layer alpha', layer_alpha.shape)
+        #print('layer rgb', layer_rgb.shape)
+        rgb_img, alphas = self._render_rgb(h_mats, layer_alpha, layer_rgb)
+        if self.training:
+            return rgb_img, alphas
+        else:
+            return rgb_img
          #b, d, h, w = mpi_alphas_bg_img.shape
          # print('mpi_alphas_bg_img', mpi_alphas_bg_img.shape)
          #ones_ = torch.ones(b, 1, 1, h, w).to(mpi_alphas_bg_img.device)
