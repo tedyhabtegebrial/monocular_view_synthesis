@@ -8,6 +8,7 @@ import torch
 from PIL import Image
 from torchvision.transforms import Compose, ToTensor, Resize
 from math import sqrt
+import torchvision
 
 seed = 42
 class RealEstateLoader(Dataset):
@@ -19,7 +20,7 @@ class RealEstateLoader(Dataset):
 		self.indices = self.indices.reshape((-1,))
 		#print('Paths', glob.glob(os.path.join(self.dir, 'extracted', self.mode, self.indices[0], '*.jpg')))
 		#print('Indices', len(self.indices))
-		self.indices = self.indices[:5]
+		#self.indices = self.indices[:1]
 		self.frames = [glob.glob(os.path.join(self.dir, 'extracted', self.mode, id + '.txt', '*.jpg')) for id in self.indices]
 		#self.text = [glob.glob(os.path.join(self.dir, 'text_files', self.mode, id + '.txt')) for id in self.indices]
 		#print('ff', len(self.frames))
@@ -35,6 +36,7 @@ class RealEstateLoader(Dataset):
 		# self.text = [os.path.join(self.dir, 'text_files', self.mode, clip, frame) for clip in self.indices]
 
 		self.min_angle = 5
+		self.max_angle = 30
 		self.min_trans = 0.15
 		self.rng = np.random.RandomState(seed)
 
@@ -127,7 +129,7 @@ class RealEstateLoader(Dataset):
 		angles = np.array(angles)
 		translations = np.array(translations)
 
-		mask = target_candidates[(angles > self.min_angle) | (translations > self.min_trans)]
+		mask = target_candidates[(angles < self.max_angle) & (translations > self.min_trans)]
 
 		if(mask.shape[0] > 2):
 			target_idx = mask[self.rng.randint(mask.shape[0])]
@@ -187,13 +189,18 @@ if __name__ == '__main__':
 	configs['dataset_root'] = '/home5/anwar/data/realestate10k/'
 	configs['mode'] = 'train'
 	configs['max_baseline'] = 5
-	configs['height'] = 10
-	configs['width'] = 10
+	configs['height'] = 300
+	configs['width'] = 200
 
 	dataset = RealEstateLoader(configs)
 	print(len(dataset))
 	data = dataset.__getitem__(1)
 	print(data['input_img'].shape)
+	c, h, w = data['input_img'].shape
+	torchvision.utils.save_image(data['input_img'].permute([1,2,0]).reshape((c,h,w)), 'permute.png')
+	torchvision.utils.save_image(data['input_img'].reshape((h,w,c)).permute([2,0,1]), 'reshape.png')
+
+
 	# for itr, data in enumerate(dataset):
 	# 	print(data['input_img'].shape)
 	# 	break

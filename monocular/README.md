@@ -67,6 +67,12 @@ print(f'Novel VIew Shape== {novel_view.shape}')
 # you should get [B, 3, H, W]
 ```
 
+#### Training on different architectures
+There are two implementations for the network and you can choose by changing the `self.mpi_net` in `monocular_stereo_magnification.py`:
+* SingleViewNetwork: imitates the approach of the SingleViewMPI paper and in order to use it:
+  * Set `self.mpi_net` to `SingleViewNetwork` and use the `forward` function implemented at line `62`
+* SingleViewNetwork_DFKI: implements our approach and in order to use it:
+ * set `self.mpi_net` to `SingleViewNetwork_DFKI` and use the `forward` function implemented in line `47`
 
 
 #### Limitations

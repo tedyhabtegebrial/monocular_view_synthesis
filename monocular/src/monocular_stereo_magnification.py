@@ -13,8 +13,8 @@ from .mpi import ApplyHomography
 from .mpi import AlphaComposition
 from .mpi import ComputeBlendingWeights
 from .mpi import WarpWithFlowFields
-from .models import BackgroundNetwork, SingleViewNetwork_DFKI, ConvNetwork
-
+from .models import BackgroundNetwork, SingleViewNetwork_DFKI, ConvNetwork, SingleViewNetwork
+import torchvision
 class StereoMagnification(nn.Module):
     '''This is a class that can perform monocular view synthesis. Given a reference color image, camera intrinsics and extrinsics it returns a novel view.
     :param configs: a python dictionary that contains necessary configurations
@@ -25,12 +25,12 @@ class StereoMagnification(nn.Module):
         super(StereoMagnification, self).__init__()
         self.configs = configs
 
-        self.mpi_net = SingleViewNetwork_DFKI(configs)
+        self.mpi_net = SingleViewNetwork(configs)
         self.background = BackgroundNetwork(configs)
         self.reduce_high_features = BackgroundNetwork(configs, reduce=True)
 
 #        self.mpi_net = ConvNetwork(configs)
-        self.ComputeBlendingWeights = ComputeBlendingWeights()
+        self.compute_blending_weights = ComputeBlendingWeights()
         self.compute_homography = ComputeHomography(configs)
         self.apply_homography = ApplyHomography()
         self.composite = AlphaComposition()
@@ -68,26 +68,39 @@ class StereoMagnification(nn.Module):
     #     :return pred_img: novel view color image
     #     :return alphas:   per-plane alphas, returned so that we can see what the scene representation looks like
         '''
+        # output of net is [B,H,W,C]
         mpi_alphas_bg_img = self.mpi_net(input_img)
-        alpha = mpi_alphas_bg_img.permute([0,3,1,2])[:, :-3,...].unsqueeze(-1)
-        layer_alpha = torch.cat([torch.ones_like(alpha[:, 0:1]), alpha], axis=1)
-
-        fg_img = input_img.permute([0,2,3,1]).unsqueeze(1)
-        bg_img = mpi_alphas_bg_img[...,-3:].unsqueeze(1)
-
-        flipped_alphas = torch.flip(layer_alpha, dims=[1])
-        blending_weights = torch.cumprod(1.0 - flipped_alphas, axis = 1) / flipped_alphas
+        # b, h, w, c = mpi_alphas_bg_img.shape
+        alpha = mpi_alphas_bg_img.permute([0,3,1,2])[:,:-3,...].unsqueeze(-1)
+        layer_alpha = torch.cat([torch.ones_like(alpha[:,0:1]), alpha], axis=1)
+        # b, c, h, w = input_img.shape
+        fg_img = input_img.unsqueeze(1)
+        bg_img = mpi_alphas_bg_img[:,:,:,-3:].permute([0,3,1,2]).unsqueeze(1)
+        # create blending weight from alpha values by exclusive reversed cumulative product
+        # blending weights shape is [B, D, 1, H, W]
+        blending_weights = self.compute_blending_weights(layer_alpha)
+        # print('blending_weights', blending_weights.shape)
+        # print('fg_img', fg_img.shape)
+        # print('bg_img', bg_img.shape)
+        # flipped_alphas = torch.flip(layer_alpha, dims=[1])
+        # ones_ = torch.ones_like(flipped_alphas)[:,:1,...]
+        # blending_weights = torch.cumprod(1.0 - flipped_alphas, axis = 1)[:,:-1,...]
+        # blending_weights = torch.cat([ones_, blending_weights], axis=1)
+        # blending_weights = torch.flip(blending_weights, dims=[1])
 
         layer_rgb = blending_weights * fg_img + (1.0 - blending_weights) * bg_img
-        layers = torch.cat([layer_rgb, layer_alpha], axis = -1)
+        # layers = torch.cat([layer_rgb, layer_alpha], axis = -1)
         h_mats = self.compute_homography(kmats, rmats, tvecs)
 
+        # b, l, h, w, c = layer_alpha.shape
         layer_alpha = layer_alpha.permute([0,1,4,2,3])
-        layer_rgb = layer_rgb.permute([0,1,4,2,3])
+        # b, l, h, w, c = layer_rgb.shape
+        # layer_rgb = layer_rgb.permute([0,1,4,2,3])
 
         #print('layer alpha', layer_alpha.shape)
         #print('layer rgb', layer_rgb.shape)
         rgb_img, alphas = self._render_rgb(h_mats, layer_alpha, layer_rgb)
+
         if self.training:
             return rgb_img, alphas
         else:

@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+import math
 
 class SingleViewNetwork(nn.Module):
 	def w_init(self, m):
@@ -9,8 +10,24 @@ class SingleViewNetwork(nn.Module):
 		m.bias = nn.init.zeros_(m.bias)
 		return m
 
+	def apply_harmonic_bias(self, channels, num_layers):
+		# Channels shape is [B,H,W,C]
+		# num_layers is 32
+		alpha = 1.0 / torch.range(2, num_layers, dtype=torch.float32)
+		#print('alpha shape', alpha.shape)
+		#print('channels shape', channels.shape)
+		shift = torch.Tensor([math.atanh(2.0 * x - 1.0) for x in alpha]).to(channels.device)
+		#shift = torch.atanh(2.0 * alpha - 1.0)
+		#print('shift shape', shift.shape)
+		no_shift = torch.zeros(channels.shape[-1] - num_layers + 1).to(channels.device)
+		#print('no shift shape', no_shift.shape)
+		shift = torch.cat([shift, no_shift], axis=-1)
+		# print(channels.shape)
+		return channels + shift
+
 	def __init__(self, configs):
 		super(SingleViewNetwork, self).__init__()
+		self.configs = configs
 
 		self.conv_1_0 = nn.Conv2d(in_channels=3, out_channels=32, kernel_size=7, padding=3)
 		self.conv_1_1 = nn.Conv2d(in_channels=32, out_channels=32, kernel_size=7, padding=3)
@@ -19,10 +36,10 @@ class SingleViewNetwork(nn.Module):
 		self.conv_2_1 = nn.Conv2d(in_channels=64, out_channels=64, kernel_size=5, padding=2)
 		self.bn_2 = nn.BatchNorm2d(64)
 		self.conv_3_0 = nn.Conv2d(in_channels=64, out_channels=128, kernel_size=3, padding=1)
-		self.conv_3_1 = nn.Conv2d(in_channels=128, out_channels=118, kernel_size=3, padding=1)
-		self.bn_3 = nn.BatchNorm2d(118)
+		self.conv_3_1 = nn.Conv2d(in_channels=128, out_channels=128, kernel_size=3, padding=1)
+		self.bn_3 = nn.BatchNorm2d(128)
 
-		self.conv_4_0 = nn.Conv2d(in_channels=118, out_channels=256, kernel_size=3, padding=1)
+		self.conv_4_0 = nn.Conv2d(in_channels=128, out_channels=256, kernel_size=3, padding=1)
 		self.conv_4_1 = nn.Conv2d(in_channels=256, out_channels=256, kernel_size=3, padding=1)
 		self.bn_4 = nn.BatchNorm2d(256)
 
@@ -58,7 +75,7 @@ class SingleViewNetwork(nn.Module):
 		self.conv_12_1 = nn.Conv2d(in_channels=512, out_channels=512, kernel_size=3, padding=1)
 		self.bn_12 = nn.BatchNorm2d(512)
 
-		self.conv_13_0 = nn.Conv2d(in_channels=512 + 118, out_channels=128, kernel_size=3, padding=1)
+		self.conv_13_0 = nn.Conv2d(in_channels=512 + 128, out_channels=128, kernel_size=3, padding=1)
 		self.conv_13_1 = nn.Conv2d(in_channels=128, out_channels=128, kernel_size=3, padding=1)
 		self.bn_13 = nn.BatchNorm2d(128)
 
@@ -74,44 +91,8 @@ class SingleViewNetwork(nn.Module):
 		self.conv_16_1 = nn.Conv2d(in_channels=64, out_channels=64, kernel_size=3, padding=1)
 		self.bn_16 = nn.BatchNorm2d(64)
 		# self.batch16 = nn.BatchNorm2d(64)
-		self.output = nn.Conv2d(in_channels=64, out_channels=(configs['num_planes'] - 1) * 2 + 3, kernel_size=3, padding=1)
+		self.output = nn.Conv2d(in_channels=64, out_channels=configs['num_planes'] + 2, kernel_size=3, padding=1)
 
-		# self.output = nn.Conv2d(in_channels=64, out_channels=(configs['num_planes'] - 1) + 3, kernel_size=3, padding=1)
-		# self.output_1 = nn.Conv2d(in_channels=64, out_channels=32, kernel_size=3, padding=1)
-		# self.output_2 = nn.Conv2d(in_channels=32, out_channels=configs['num_planes'] * 2 + 2, kernel_size=3, padding=1)
-		# self.conv_1_0 = self.w_init(self.conv_1_0)
-		# self.conv_1_1 = self.w_init(self.conv_1_1)
-		# self.conv_2_0 = self.w_init(self.conv_2_0)
-		# self.conv_2_1 = self.w_init(self.conv_2_1)
-		# self.conv_3_0 = self.w_init(self.conv_3_0)
-		# self.conv_3_1 = self.w_init(self.conv_3_1)
-		# self.conv_4_0 = self.w_init(self.conv_4_0)
-		# self.conv_4_1 = self.w_init(self.conv_4_1)
-		# self.conv_5_0 = self.w_init(self.conv_5_0)
-		# self.conv_5_1 = self.w_init(self.conv_5_1)
-		# self.conv_6_0 = self.w_init(self.conv_6_0)
-		# self.conv_6_1 = self.w_init(self.conv_6_1)
-		# self.conv_7_0 = self.w_init(self.conv_7_0)
-		# self.conv_7_1 = self.w_init(self.conv_7_1)
-		# self.conv_8_0 = self.w_init(self.conv_8_0)
-		# self.conv_8_1 = self.w_init(self.conv_8_1)
-		# self.conv_9_0 = self.w_init(self.conv_9_0)
-		# self.conv_9_1 = self.w_init(self.conv_9_1)
-		# self.conv_10_0 = self.w_init(self.conv_10_0)
-		# self.conv_10_1 = self.w_init(self.conv_10_1)
-		# self.conv_11_0 = self.w_init(self.conv_11_0)
-		# self.conv_11_1 = self.w_init(self.conv_11_1)
-		# self.conv_12_0 = self.w_init(self.conv_12_0)
-		# self.conv_12_1 = self.w_init(self.conv_12_1)
-		# self.conv_13_0 = self.w_init(self.conv_13_0)
-		# self.conv_13_1 = self.w_init(self.conv_13_1)
-		# self.conv_14_0 = self.w_init(self.conv_14_0)
-		# self.conv_14_1 = self.w_init(self.conv_14_1)
-		# self.conv_15_0 = self.w_init(self.conv_15_0)
-		# self.conv_15_1 = self.w_init(self.conv_15_1)
-		# self.conv_16_0 = self.w_init(self.conv_16_0)
-		# self.conv_16_1 = self.w_init(self.conv_16_1)
-		# self.output = self.w_init(self.output)
 
 	def forward(self, rgb):
 		# Encoding
@@ -154,10 +135,32 @@ class SingleViewNetwork(nn.Module):
 		conv15 = F.relu((self.conv_15_1(F.relu(self.conv_15_0(torch.cat([up_14, conv1], dim=1))))))
 
 		conv16 = F.relu((self.conv_16_1(F.relu(self.conv_16_0(conv15)))))
-		conv16 = self.bn_16(conv16)
+		# conv16 = self.bn_16(conv16)
 
-		# output_1 = F.relu(self.output_1(conv16))
 		output = self.output(conv16)
-		print('alpha values:', output[:, :31, :, :].min().item(), output[:, :31, :, :].max().item())
-		# return F.sigmoid(output.clamp(min=-50.0, max=50.0))
-		return torch.sigmoid(output)
+		# b, c, h, w = output.shape
+		output = output.permute([0,2,3,1])
+		output = self.apply_harmonic_bias(output, self.configs['num_planes'])
+		# output = output.permute([0,3,1,2])
+		# print('alpha values:', output[:, :self.configs['num_planes'], :, :].min().item(), output[:, :self.configs['num_planes'], :, :].max().item())
+		# return torch.sigmoid(output)
+		return (torch.tanh(output) + 1.0) / 2.0
+
+
+if __name__ == '__main__':
+	configs = {}
+	configs['width'] = 256
+	configs['height'] = 256
+	configs['batch_size'] = 1
+	configs['num_planes'] = 64
+	configs['near_plane'] = 5
+	configs['far_plane'] = 10000
+	configs['encoder_features'] = 32
+	configs['encoder_ouput_features'] = 64
+	configs['input_channels'] = 3
+	configs['out_put_channels'] = 3
+	configs['occlusion_levels'] = 3
+	network = SingleViewNetwork_DFKI(configs).eval()
+	input_img = torch.rand(1, 3, 256, 256)
+	alphas_assoc = network(input_img)
+	print(f'Alphas and Association maps shape == {alphas_assoc.shape}')

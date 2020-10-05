@@ -36,7 +36,7 @@ if is_teddy:
     configs['logging_dir'] = '/habtegebrialdata/monocular_nvs/experiment_logs/exp_1_with_bn_new_alpha_comp'
 else:
     configs['dataset_root'] = '/home5/anwar/data/realestate10k'
-    configs['logging_dir'] = '/home5/anwar/data/experiments/exp_SV'
+    configs['logging_dir'] = '/home5/anwar/data/experiments/exp_SV_GAN_LOSS_1'
 
 configs['mode'] = 'train'
 configs['max_baseline'] = 26
@@ -93,38 +93,39 @@ for epoch in range(configs['num_epochs']):
         gen_losses = trainer(data, mode='generator')[0]
 #        torch.cuda.synchronize()
 #        print('time 1', time.time() - start)
-#        gen_l = sum([v for k,v in gen_losses.items()]).mean()
-        gen_l = gen_losses['Total Loss'] # + gen_losses['GAN'] * gan_opts.lamda_gan
+        gen_l = sum([v for k,v in gen_losses.items()]).mean()
+        # gen_l = gen_losses['Total Loss']  + gen_losses['GAN'] * gan_opts.lamda_gan
         print('gen_l', gen_l.item())
         gen_l.backward()
         gen_optimizer.step()
         gen_optimizer.zero_grad()
 #        torch.cuda.synchronize()
 #        start = time.time()
-#        disc_losses = trainer(data, mode='discriminator')
+        disc_losses = trainer(data, mode='discriminator')
 #        torch.cuda.synchronize()
-#        print('time 2', time.time() - start)
-#        disc_l = sum([v for k,v in disc_losses.items()]).mean()
-#        disc_l.backward()
-#        disc_optimizer.step()
-#        disc_optimizer.zero_grad()
+       # print('time 2', time.time() - start)
+        disc_l = sum([v for k,v in disc_losses.items()]).mean()
+        disc_l.backward()
+        disc_optimizer.step()
+        disc_optimizer.zero_grad()
         novel_view = trainer.fake
         gen_print = {k:v.item() for k,v in gen_losses.items()}
-#        disc_print = {k:v.item() for k,v in disc_losses.items()}
+        disc_print = {k:v.item() for k,v in disc_losses.items()}
         print(f'epoch {epoch} iteration {itr}     generator  loss {gen_print}')
-#        print(f'epoch {epoch} iteration {itr}  discriminator loss {disc_print}')
+        print(f'epoch {epoch} iteration {itr}  discriminator loss {disc_print}')
         if(steps % 300 == 0):
-            novel_view = novel_view.data[:, [2,1,0], :, :].cpu()
-            target = a + (data['target_img'].data[:, [2,1,0], :, :].cpu() - min_val) * (b - a)/(max_val - min_val)
-            input_img = a + (data['input_img'].data[:, [2,1,0], :, :].cpu() - min_val) * (b - a)/(max_val - min_val)
+            novel_view = novel_view.data.cpu()
+            target = data['target_img'].data.cpu()
+            input_img = data['input_img'].data.cpu()
             torchvision.utils.save_image(novel_view, os.path.join(configs['logging_dir'], str(steps) +'_novel.png'))
-            writer.add_image('Novel View', novel_view[0], steps)
+            # writer.add_image('Novel View', novel_view[0], steps)
             #writer.add_scalar('Scalar', steps, steps)
             torchvision.utils.save_image(target, os.path.join(configs['logging_dir'], str(steps) +'_target.png'))
-            writer.add_image('Target View', target[0], steps)
+            # writer.add_image('Target View', target[0], steps)
             torchvision.utils.save_image(input_img, os.path.join(configs['logging_dir'], str(steps) +'_input.png'))
-            writer.add_image('Input View', input_img[0], steps)
+            # writer.add_image('Input View', input_img[0], steps)
         steps += 1
+        # exit()
 
     #writer.export_scalars_to_json(os.path.join(tb_path,'all_scalars.json')
     writer.close()

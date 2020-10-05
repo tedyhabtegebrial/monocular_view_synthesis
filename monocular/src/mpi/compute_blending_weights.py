@@ -3,10 +3,14 @@ import torch
 class ComputeBlendingWeights():
 	def __call__(self, alphas):
 		device = alphas.device
+		# this permutation should be moved to monocular_nvs_network
+		alphas = alphas.permute([0,1,4,2,3])
 		b, d, _, h, w = alphas.shape
 		blending_weights = [torch.ones((b, 1, 1, h, w)).to(device)]
+		# print('alphas', alphas.shape)
 		alphas = torch.split(alphas, dim=1, split_size_or_sections=1)
 		# print(alphas[:, 2-1, :, :].unsqueeze(1).shape)
+		# print('alphas', len(alphas))
 		for d in range(1, len(alphas)):
 			blend_w = blending_weights[-1]*(1.0 - alphas[d-1])
 			blending_weights.append(blend_w)
