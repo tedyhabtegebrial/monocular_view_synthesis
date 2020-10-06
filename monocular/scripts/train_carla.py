@@ -31,6 +31,7 @@ configs['out_put_channels'] = 3
 configs['num_features'] = 16
 configs['occlusion_levels'] = 3
 configs['machine_name'] = 'geneva'
+configs['use_disc'] = False
 
 
 # Dataset related settings
