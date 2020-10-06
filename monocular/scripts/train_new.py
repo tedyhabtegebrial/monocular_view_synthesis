@@ -1,9 +1,6 @@
-<<<<<<< Updated upstream
-import os, sys, time
-=======
 import os
 import sys
->>>>>>> Stashed changes
+import time
 import tqdm
 import torch
 import torch.nn.functional as F
@@ -33,13 +30,8 @@ configs['out_put_channels'] = 3
 configs['num_features'] = 16
 configs['occlusion_levels'] = 3
 
-<<<<<<< Updated upstream
-## Dataset related settings
-is_teddy = False
-=======
 # Dataset related settings
-is_teddy = True
->>>>>>> Stashed changes
+is_teddy = False
 if is_teddy:
     # configs['dataset_root'] = '/home/anwar/data/KITTI_Odometry/dataset'
     configs['dataset_root'] = '/data/teddy/KITTI_Odometry/dataset'
@@ -56,29 +48,30 @@ tb_path = os.path.join(configs['logging_dir'], 'runs')
 os.makedirs(tb_path, exist_ok=True)
 writer = SummaryWriter(tb_path)
 
-#train_dataset = KittiLoader(configs)
+# train_dataset = KittiLoader(configs)
 train_dataset = RealEstateLoader(configs)
 train_loader = DataLoader(dataset=train_dataset,
-<<<<<<< Updated upstream
+<< << << < Updated upstream
                          batch_size=configs['batch_size'],
                          shuffle=True,
-                         num_workers=max(1, configs['batch_size']//2),
+                         num_workers=max(1, configs['batch_size'] // 2),
                          )
-#test_dataset = KittiLoader({**configs, 'mode':'test'})
-#test_loader = DataLoader(dataset=test_dataset,
+# test_dataset = KittiLoader({**configs, 'mode':'test'})
+# test_loader = DataLoader(dataset=test_dataset,
 #                         batch_size=1,
 #                         shuffle=False,
 #                         )
 
 monocular_nvs_network = StereoMagnification(configs).float().cuda(0)
-gen_optimizer = torch.optim.Adam(monocular_nvs_network.parameters(), lr=gan_opts.lr_gen, betas=(0.9, 0.999))
-=======
-                          batch_size=configs['batch_size'],
-                          shuffle=True,
-                          num_workers=max(1, configs['batch_size'] // 2),
+gen_optimizer = torch.optim.Adam(
+    monocular_nvs_network.parameters(), lr=gan_opts.lr_gen, betas=(0.9, 0.999))
+== == == =
+                          batch_size = configs['batch_size'],
+                          shuffle = True,
+                          num_workers = max(1, configs['batch_size'] // 2),
                           )
-test_dataset = KittiLoader({**configs, 'mode': 'test'})
-test_loader = DataLoader(dataset=test_dataset,
+test_dataset=KittiLoader({**configs, 'mode': 'test'})
+test_loader=DataLoader(dataset = test_dataset,
                          batch_size=1,
                          shuffle=False,
                          )
@@ -157,7 +150,7 @@ for epoch in range(configs['num_epochs']):
             input_img = data['input_img'].data.cpu()
             torchvision.utils.save_image(novel_view, os.path.join(configs['logging_dir'], str(steps) +'_novel.png'))
             # writer.add_image('Novel View', novel_view[0], steps)
-            #writer.add_scalar('Scalar', steps, steps)
+            # writer.add_scalar('Scalar', steps, steps)
             torchvision.utils.save_image(target, os.path.join(configs['logging_dir'], str(steps) +'_target.png'))
             # writer.add_image('Target View', target[0], steps)
             torchvision.utils.save_image(input_img, os.path.join(configs['logging_dir'], str(steps) +'_input.png'))
@@ -187,11 +180,11 @@ for epoch in range(configs['num_epochs']):
         # exit()
 
 <<<<<<< Updated upstream
-    #writer.export_scalars_to_json(os.path.join(tb_path,'all_scalars.json')
+    # writer.export_scalars_to_json(os.path.join(tb_path,'all_scalars.json')
     writer.close()
     torch.save(monocular_nvs_network.state_dict(), os.path.join(models_dir, str(epoch).zfill(4)+'gen_snapshot.pt'))
     torch.save(discriminator.state_dict(), os.path.join(models_dir, str(epoch).zfill(4)+'disc_snapshot.pt'))
-    #### here you can do tests every epoch
+    # here you can do tests every epoch
 =======
     torch.save(monocular_nvs_network.state_dict(), os.path.join(
         models_dir, str(epoch).zfill(4) + 'gen_snapshot.pt'))
