@@ -62,7 +62,7 @@ test_loader = DataLoader(dataset=test_dataset,
                          shuffle=False,
                          )
 
-monocular_nvs_network = SingleViewNetwork_DFKI(configs).float().cuda(0)
+monocular_nvs_network = StereoMagnification(configs).float().cuda(0)
 gen_optimizer = torch.optim.Adam(
     monocular_nvs_network.parameters(), lr=gan_opts.lr_gen, betas=(0.9, 0.999))
 gen_optimizer.zero_grad()

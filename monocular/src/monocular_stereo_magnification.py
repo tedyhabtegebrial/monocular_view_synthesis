@@ -15,17 +15,20 @@ from .mpi import ComputeBlendingWeights
 from .mpi import WarpWithFlowFields
 from .models import BackgroundNetwork, SingleViewNetwork_DFKI, ConvNetwork, SingleViewNetwork
 import torchvision
+
+
 class StereoMagnification(nn.Module):
     '''This is a class that can perform monocular view synthesis. Given a reference color image, camera intrinsics and extrinsics it returns a novel view.
     :param configs: a python dictionary that contains necessary configurations
     '''
+
     def __init__(self, configs):
         '''Constructor method
         '''
         super(StereoMagnification, self).__init__()
         self.configs = configs
 
-        self.mpi_net = SingleViewNetwork(configs)
+        self.mpi_net = SingleViewNetwork_DFKI(configs)
         self.background = BackgroundNetwork(configs)
         self.reduce_high_features = BackgroundNetwork(configs, reduce=True)
 
@@ -41,21 +44,24 @@ class StereoMagnification(nn.Module):
         fg = fg.unsqueeze(1)
         bg = bg.unsqueeze(1)
         # color_imgs = bg*weight + (1.0-weight)*fg
-        color_imgs = fg*weight + (1.0-weight)*bg
+        color_imgs = fg * weight + (1.0 - weight) * bg
         return color_imgs
 
     def forward2(self, input_img, kmats, rmats, tvecs):
         # print(input_img.shape)
         b, c, h, w = input_img.shape
         alphas_assoc = self.mpi_net(input_img)
-        alphas = alphas_assoc[:, :self.configs['num_planes'], :, :].unsqueeze(2)
-        assoc = alphas_assoc[:, self.configs['num_planes']:, :, :].view(-1, self.configs['num_planes'], self.configs['occlusion_levels'], h, w)
+        alphas = alphas_assoc[:,
+                              :self.configs['num_planes'], :, :].unsqueeze(2)
+        assoc = alphas_assoc[:, self.configs['num_planes']:, :, :].view(
+            -1, self.configs['num_planes'], self.configs['occlusion_levels'], h, w)
         # print('assoc shape', assoc.shape)
         mult_layer_features = self.background(input_img)
 
         h_mats = self.compute_homography(kmats, rmats, tvecs)
 
-        warped_features, alphas = self._get_warped_features(h_mats, alphas, assoc, mult_layer_features)
+        warped_features, alphas = self._get_warped_features(
+            h_mats, alphas, assoc, mult_layer_features)
         rgb_img = self.reduce_high_features(warped_features)
         return rgb_img, alphas
 
@@ -71,11 +77,14 @@ class StereoMagnification(nn.Module):
         # output of net is [B,H,W,C]
         mpi_alphas_bg_img = self.mpi_net(input_img)
         # b, h, w, c = mpi_alphas_bg_img.shape
-        alpha = mpi_alphas_bg_img.permute([0,3,1,2])[:,:-3,...].unsqueeze(-1)
-        layer_alpha = torch.cat([torch.ones_like(alpha[:,0:1]), alpha], axis=1)
+        alpha = mpi_alphas_bg_img.permute(
+            [0, 3, 1, 2])[:, :-3, ...].unsqueeze(-1)
+        layer_alpha = torch.cat(
+            [torch.ones_like(alpha[:, 0:1]), alpha], axis=1)
         # b, c, h, w = input_img.shape
         fg_img = input_img.unsqueeze(1)
-        bg_img = mpi_alphas_bg_img[:,:,:,-3:].permute([0,3,1,2]).unsqueeze(1)
+        bg_img = mpi_alphas_bg_img[:, :, :, -
+                                   3:].permute([0, 3, 1, 2]).unsqueeze(1)
         # create blending weight from alpha values by exclusive reversed cumulative product
         # blending weights shape is [B, D, 1, H, W]
         blending_weights = self.compute_blending_weights(layer_alpha)
@@ -88,12 +97,13 @@ class StereoMagnification(nn.Module):
         # blending_weights = torch.cat([ones_, blending_weights], axis=1)
         # blending_weights = torch.flip(blending_weights, dims=[1])
 
-        layer_rgb = blending_weights * fg_img + (1.0 - blending_weights) * bg_img
+        layer_rgb = blending_weights * fg_img + \
+            (1.0 - blending_weights) * bg_img
         # layers = torch.cat([layer_rgb, layer_alpha], axis = -1)
         h_mats = self.compute_homography(kmats, rmats, tvecs)
 
         # b, l, h, w, c = layer_alpha.shape
-        layer_alpha = layer_alpha.permute([0,1,4,2,3])
+        layer_alpha = layer_alpha.permute([0, 1, 4, 2, 3])
         # b, l, h, w, c = layer_rgb.shape
         # layer_rgb = layer_rgb.permute([0,1,4,2,3])
 
@@ -142,28 +152,30 @@ class StereoMagnification(nn.Module):
         output_rgb = self.composite(color_imgs, warped_alphas)
         return output_rgb, alphas
 
-
     def _get_warped_features(self, h_mats, alphas, associations, mult_layer_features):
         # print(alphas.shape)
         b, d, _, h, w = alphas.shape
         l = associations.shape[2]
         warped_alphas = self.apply_homography(h_mats, alphas.contiguous())
         warped_assoc = self.apply_homography(h_mats, associations.contiguous())
-        warped_mult_layer_features = self.warp_with_ff(h_mats, mult_layer_features, warped_alphas).reshape(b, l, self.configs['num_features'], h, w)
+        warped_mult_layer_features = self.warp_with_ff(
+            h_mats, mult_layer_features, warped_alphas).reshape(b, l, self.configs['num_features'], h, w)
 
         # print('Warped mult layer features', warped_mult_layer_features.shape)
         # print('Warped assoc shape', warped_assoc.shape)
         composite_assoc = self.composite(warped_assoc, warped_alphas)
         # print('Composite assoc shape', composite_assoc.shape)
-        composite_assoc = composite_assoc / torch.sum(composite_assoc, dim=1, keepdim=True).clamp(min=1e-06)
+        composite_assoc = composite_assoc / \
+            torch.sum(composite_assoc, dim=1, keepdim=True).clamp(min=1e-06)
 
-        warped_features = warped_mult_layer_features * composite_assoc.unsqueeze(2)
+        warped_features = warped_mult_layer_features * \
+            composite_assoc.unsqueeze(2)
 
         # output_rgb = self.composite(color_imgs, warped_alphas)
         return warped_features.sum(dim=1, keepdim=False), alphas
 
 
-if __name__=='__main__':
+if __name__ == '__main__':
     configs = {}
     configs['width'] = 256
     configs['height'] = 256
@@ -179,8 +191,8 @@ if __name__=='__main__':
     configs['out_put_channels'] = 3
     monocular_nvs_network = StereoMagnification(configs).eval()
     input_img = torch.rand(1, 3, 256, 256)
-    k_mats = torch.rand(1,3,3)
-    r_mats = torch.rand(1,3,3)
-    t_vecs = torch.rand(1,3,1)
+    k_mats = torch.rand(1, 3, 3)
+    r_mats = torch.rand(1, 3, 3)
+    t_vecs = torch.rand(1, 3, 1)
     novel_view = monocular_nvs_network(input_img, k_mats, r_mats, t_vecs)
     print(f'Novel VIew Shape== {novel_view.shape}')

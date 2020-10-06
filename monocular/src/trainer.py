@@ -45,7 +45,8 @@ class Trainer(nn.Module):
                 'Mode should be in [generator, discriminator, inference]')
 
     def generate_fake(self, input_data):
-        novel_view, alpha = self.generator(input_data)
+        novel_view, alpha = self.generator(
+            input_data['input_img'], input_data['k_mats'], input_data['r_mats'], input_data['t_vecs'])
         return novel_view, alpha
 
     def compute_discriminator_loss(self, data):
