@@ -61,5 +61,5 @@ class WarpWithFlowFields(nn.Module):
         # print('compute_flow_fields grid shape', grid.shape)
         # print('compute_flow_fields src_image shape', src_img.shape)
 
-        warped_views = F.grid_sample(input=src_img, grid=grid, mode='nearest')
+        warped_views = F.grid_sample(input=src_img, grid=grid, mode='bilinear')
         return warped_views

@@ -191,7 +191,11 @@ class StereoMagnification(nn.Module):
         print('warp with ff:', time.time() - t_start)
         # print('Warped mult layer features', warped_mult_layer_features.shape)
         # print('Warped assoc shape', warped_assoc.shape)
+        torch.cuda.synchronize()
+        t_start = time.time()
         composite_assoc = self.composite(warped_assoc, warped_alphas)
+        torch.cuda.synchronize()
+        print('warp composite:', time.time() - t_start)
         # print('Composite assoc shape', composite_assoc.shape)
         composite_assoc = composite_assoc / \
             torch.sum(composite_assoc, dim=1, keepdim=True).clamp(min=1e-06)
