@@ -1,6 +1,7 @@
 import os
 import sys
 import tqdm
+import time
 import torch
 import torch.nn.functional as F
 import torchvision.utils
@@ -93,11 +94,20 @@ for epoch in range(configs['num_epochs']):
     print(f'Epoch number = {epoch}')
     for itr, data in tqdm.tqdm(enumerate(train_loader), total=len(train_loader)):
         data = {k: v.float().cuda(0) for k, v in data.items()}
+        torch.cuda.synchronize()
+        t_start = time.time()
         gen_losses = trainer(data, mode='generator')
+        torch.cuda.synchronize()
+        print('forward', time.time() - t_start)
         gen_l = sum([v for k, v in gen_losses.items()]).mean()
         gen_l.backward()
+        torch.cuda.synchronize()
+        print('backward', time.time() - t_start)
         gen_optimizer.step()
         gen_optimizer.zero_grad()
+        torch.cuda.synchronize()
+        print('update', time.time() - t_start)
+
         if configs['use_disc']:
             disc_losses = trainer(data, mode='discriminator')
             disc_l = sum([v for k, v in disc_losses.items()]).mean()
