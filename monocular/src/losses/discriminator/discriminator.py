@@ -15,7 +15,7 @@ class MultiscaleDiscriminator(BaseNetwork):
         self.opt = opt
 
         for i in range(opt.num_D):
-            subnetD = netD = NLayerDiscriminator(opt)
+            subnetD = NLayerDiscriminator(opt)
             self.add_module('discriminator_%d' % i, subnetD)
 
     def downsample(self, input):

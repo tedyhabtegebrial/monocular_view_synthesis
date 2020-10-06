@@ -7,6 +7,8 @@ class BackgroundNetwork(nn.Module):
 		super(BackgroundNetwork, self).__init__()
 
 		self.configs = configs
+		self.reduce = reduce
+
 		input_size = 3
 		output_size = self.configs['num_features'] * self.configs['occlusion_levels']
 
@@ -66,8 +68,11 @@ class BackgroundNetwork(nn.Module):
 
 		output = self.output(conv7)
 
-		return torch.sigmoid(output)
+		if(not self.reduce):
+			return torch.sigmoid(output)
 
+		print('background network', output.min(), output.max())
+		return torch.tanh(output)
 
 
 if __name__ == '__main__':
