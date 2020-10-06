@@ -53,12 +53,15 @@ class StereoMagnification(nn.Module):
         torch.cuda.synchronize()
         t_start = time.time()
         alphas_assoc = self.mpi_net(input_img)
+        torch.cuda.synchronize()
         print('mpi_net:', time.time() - t_start)
         alphas = alphas_assoc[:,
                               :self.configs['num_planes'], :, :].unsqueeze(2)
         assoc = alphas_assoc[:, self.configs['num_planes']:, :, :].view(
             -1, self.configs['num_planes'], self.configs['occlusion_levels'], h, w)
         # print('assoc shape', assoc.shape)
+        torch.cuda.synchronize()
+        t_start = time.time()
         mult_layer_features = self.background(input_img)
 
         h_mats = self.compute_homography(kmats, rmats, tvecs)

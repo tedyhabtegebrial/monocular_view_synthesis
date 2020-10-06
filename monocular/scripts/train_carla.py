@@ -94,50 +94,50 @@ for epoch in range(configs['num_epochs']):
     print(f'Epoch number = {epoch}')
     for itr, data in tqdm.tqdm(enumerate(train_loader), total=len(train_loader)):
         data = {k: v.float().cuda(0) for k, v in data.items()}
-        torch.cuda.synchronize()
-        t_start = time.time()
-        gen_losses = trainer(data, mode='generator')
-        torch.cuda.synchronize()
-        print('forward', time.time() - t_start)
-        gen_l = sum([v for k, v in gen_losses.items()]).mean()
-        gen_l.backward()
-        torch.cuda.synchronize()
-        print('backward', time.time() - t_start)
-        gen_optimizer.step()
-        gen_optimizer.zero_grad()
-        torch.cuda.synchronize()
-        print('update', time.time() - t_start)
+    #     torch.cuda.synchronize()
+    #     t_start = time.time()
+    #     gen_losses = trainer(data, mode='generator')
+    #     torch.cuda.synchronize()
+    #     print('forward', time.time() - t_start)
+    #     gen_l = sum([v for k, v in gen_losses.items()]).mean()
+    #     gen_l.backward()
+    #     torch.cuda.synchronize()
+    #     print('backward', time.time() - t_start)
+    #     gen_optimizer.step()
+    #     gen_optimizer.zero_grad()
+    #     torch.cuda.synchronize()
+    #     print('update', time.time() - t_start)
 
-        if configs['use_disc']:
-            disc_losses = trainer(data, mode='discriminator')
-            disc_l = sum([v for k, v in disc_losses.items()]).mean()
-            disc_l.backward()
-            disc_optimizer.step()
-            disc_optimizer.zero_grad()
-        novel_view = (trainer.fake + 1.0) / 2.0
-        gen_print = {k: v.item() for k, v in gen_losses.items()}
-        print(f'epoch {epoch} iteration {itr}     generator  loss {gen_print}')
-        if configs['use_disc']:
-            disc_print = {k: v.item() for k, v in disc_losses.items()}
-            print(
-                f'epoch {epoch} iteration {itr}  discriminator loss {disc_print}')
-        if(steps % 200 == 0):
-            novel_view = novel_view.data[:, [2, 1, 0], :, :].cpu()
-            target = (data['target_img'].data[:, [
-                      2, 1, 0], :, :].cpu() + 1) / 2.0
-            input_img = (data['input_img'].data[:, [
-                         2, 1, 0], :, :].cpu() + 1) / 2.0
-            torchvision.utils.save_image(novel_view, os.path.join(
-                configs['logging_dir'], str(steps) + '_novel.png'))
-            torchvision.utils.save_image(target, os.path.join(
-                configs['logging_dir'], str(steps) + '_target.png'))
-            torchvision.utils.save_image(input_img, os.path.join(
-                configs['logging_dir'], str(steps) + '_input.png'))
-        steps += 1
+    #     if configs['use_disc']:
+    #         disc_losses = trainer(data, mode='discriminator')
+    #         disc_l = sum([v for k, v in disc_losses.items()]).mean()
+    #         disc_l.backward()
+    #         disc_optimizer.step()
+    #         disc_optimizer.zero_grad()
+    #     novel_view = (trainer.fake + 1.0) / 2.0
+    #     gen_print = {k: v.item() for k, v in gen_losses.items()}
+    #     print(f'epoch {epoch} iteration {itr}     generator  loss {gen_print}')
+    #     if configs['use_disc']:
+    #         disc_print = {k: v.item() for k, v in disc_losses.items()}
+    #         print(
+    #             f'epoch {epoch} iteration {itr}  discriminator loss {disc_print}')
+    #     if(steps % 200 == 0):
+    #         novel_view = novel_view.data[:, [2, 1, 0], :, :].cpu()
+    #         target = (data['target_img'].data[:, [
+    #                   2, 1, 0], :, :].cpu() + 1) / 2.0
+    #         input_img = (data['input_img'].data[:, [
+    #                      2, 1, 0], :, :].cpu() + 1) / 2.0
+    #         torchvision.utils.save_image(novel_view, os.path.join(
+    #             configs['logging_dir'], str(steps) + '_novel.png'))
+    #         torchvision.utils.save_image(target, os.path.join(
+    #             configs['logging_dir'], str(steps) + '_target.png'))
+    #         torchvision.utils.save_image(input_img, os.path.join(
+    #             configs['logging_dir'], str(steps) + '_input.png'))
+    #     steps += 1
 
-    torch.save(monocular_nvs_network.state_dict(), os.path.join(
-        models_dir, str(epoch).zfill(4) + 'gen_snapshot.pt'))
-    if configs['use_disc']:
-        torch.save(discriminator.state_dict(), os.path.join(
-            models_dir, str(epoch).zfill(4) + 'disc_snapshot.pt'))
-        # here you can do tests every epoch
+    # torch.save(monocular_nvs_network.state_dict(), os.path.join(
+    #     models_dir, str(epoch).zfill(4) + 'gen_snapshot.pt'))
+    # if configs['use_disc']:
+    #     torch.save(discriminator.state_dict(), os.path.join(
+    #         models_dir, str(epoch).zfill(4) + 'disc_snapshot.pt'))
+    #     # here you can do tests every epoch
