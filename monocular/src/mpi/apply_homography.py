@@ -63,9 +63,6 @@ class ApplyHomography(nn.Module):
             self.grid = grid
         grid_ = grid.view(-1, h, w, 2)
         src_img = src_img.contiguous().view(-1, f_size, h, w)
-        # print('apply homography grid shape', grid.shape)
-        # print('apply homography src_image shape', src_img.shape)
-
         warped_views = F.grid_sample(input=src_img, grid=grid_, mode=mode)
         warped_views = warped_views.view(b_size, num_d, f_size, h, w)
         return warped_views

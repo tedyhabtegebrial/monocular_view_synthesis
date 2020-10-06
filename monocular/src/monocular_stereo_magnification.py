@@ -175,10 +175,12 @@ class StereoMagnification(nn.Module):
         torch.cuda.synchronize()
         t_start = time.time()
         warped_alphas = self.apply_homography(h_mats, alphas.contiguous())
+        torch.cuda.synchronize()
+        print('apply homographies 1:', time.time() - t_start)
         warped_assoc = self.apply_homography(
             h_mats, associations, grid=self.apply_homography.grid)
         torch.cuda.synchronize()
-        print('apply homographies:', time.time() - t_start)
+        print('apply homographies 2:', time.time() - t_start)
         torch.cuda.synchronize()
         t_start = time.time()
         warped_mult_layer_features = self.warp_with_ff(
