@@ -111,7 +111,6 @@ max_val = 1
 for epoch in range(configs['num_epochs']):
     print(f'Epoch number = {epoch}')
     for itr, data in tqdm.tqdm(enumerate(train_loader), total=len(train_loader)):
-<<<<<<< Updated upstream
         data = {k:v.float().cuda(0) for k,v in data.items()}
 #        torch.cuda.synchronize()
 #        start = time.time()
@@ -121,18 +120,12 @@ for epoch in range(configs['num_epochs']):
         gen_l = sum([v for k,v in gen_losses.items()]).mean()
         # gen_l = gen_losses['Total Loss']  + gen_losses['GAN'] * gan_opts.lamda_gan
         print('gen_l', gen_l.item())
-=======
-        data = {k: v.float().cuda(0) for k, v in data.items()}
-        gen_losses = trainer(data, mode='generator')
-        gen_l = sum([v for k, v in gen_losses.items()]).mean()
->>>>>>> Stashed changes
         gen_l.backward()
         gen_optimizer.step()
         gen_optimizer.zero_grad()
 #        torch.cuda.synchronize()
 #        start = time.time()
         disc_losses = trainer(data, mode='discriminator')
-<<<<<<< Updated upstream
 #        torch.cuda.synchronize()
        # print('time 2', time.time() - start)
         disc_l = sum([v for k,v in disc_losses.items()]).mean()
@@ -155,40 +148,10 @@ for epoch in range(configs['num_epochs']):
             # writer.add_image('Target View', target[0], steps)
             torchvision.utils.save_image(input_img, os.path.join(configs['logging_dir'], str(steps) +'_input.png'))
             # writer.add_image('Input View', input_img[0], steps)
-=======
-        disc_l = sum([v for k, v in disc_losses.items()]).mean()
-        disc_l.backward()
-        disc_optimizer.step()
-        disc_optimizer.zero_grad()
-        novel_view = (trainer.fake + 1.0) / 2.0
-        gen_print = {k: v.item() for k, v in gen_losses.items()}
-        disc_print = {k: v.item() for k, v in disc_losses.items()}
-        print(f'epoch {epoch} iteration {itr}     generator  loss {gen_print}')
-        print(f'epoch {epoch} iteration {itr}  discriminator loss {disc_print}')
-        if(steps % 200 == 0):
-            novel_view = novel_view.data[:, [2, 1, 0], :, :].cpu()
-            target = data['target_img'].data[:, [2, 1, 0], :, :].cpu()
-            input_img = data['input_img'].data[:, [2, 1, 0], :, :].cpu()
-            torchvision.utils.save_image(novel_view, os.path.join(
-                configs['logging_dir'], str(steps) + '_novel.png'))
-            torchvision.utils.save_image(target, os.path.join(
-                configs['logging_dir'], str(steps) + '_target.png'))
-            torchvision.utils.save_image(input_img, os.path.join(
-                configs['logging_dir'], str(steps) + '_input.png'))
->>>>>>> Stashed changes
         steps += 1
         # exit()
-
-<<<<<<< Updated upstream
     # writer.export_scalars_to_json(os.path.join(tb_path,'all_scalars.json')
     writer.close()
     torch.save(monocular_nvs_network.state_dict(), os.path.join(models_dir, str(epoch).zfill(4)+'gen_snapshot.pt'))
     torch.save(discriminator.state_dict(), os.path.join(models_dir, str(epoch).zfill(4)+'disc_snapshot.pt'))
     # here you can do tests every epoch
-=======
-    torch.save(monocular_nvs_network.state_dict(), os.path.join(
-        models_dir, str(epoch).zfill(4) + 'gen_snapshot.pt'))
-    torch.save(discriminator.state_dict(), os.path.join(
-        models_dir, str(epoch).zfill(4) + 'disc_snapshot.pt'))
-    # here you can do tests every epoch
->>>>>>> Stashed changes
