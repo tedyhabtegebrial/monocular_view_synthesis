@@ -77,7 +77,8 @@ class SingleViewNetwork_DFKI(nn.Module):
 		self.output = nn.Conv2d(in_channels=64, out_channels=configs['num_planes']  + configs['occlusion_levels'] * configs['num_planes'], kernel_size=3, padding=1)
 
 
-	def forward(self, rgb):
+	def forward(self, input_data):
+		rgb = input_data['input_img']
 		# Encoding
 		conv1 = F.relu((self.conv_1_1(F.relu(self.conv_1_0(rgb)))))
 
