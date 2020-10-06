@@ -68,16 +68,12 @@ gen_optimizer.zero_grad()
 
 
 discriminator = MultiscaleDiscriminator(gan_opts).cuda(0)
-<< << << < Updated upstream
 disc_optimizer = torch.optim.Adam(
     discriminator.parameters(), lr=gan_opts.lr_disc, betas=(0.9, 0.999))
-== == == =
-disc_optimizer = torch.optim.Adam(
-    discriminator.parameters(), lr=gan_opts['lr_disc'], betas=(0.9, 0.999))
->>>>>> > Stashed changes
+
 disc_optimizer.zero_grad()
 
-trainer = Trainer(gan_opts).cuda(0)
+trainer = Trainer(gan_opts, configs).cuda(0)
 trainer.initialise(monocular_nvs_network, discriminator)
 
 
