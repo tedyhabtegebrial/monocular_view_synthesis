@@ -17,7 +17,7 @@ from monocular.src import CarlaLoader
 gan_opts = arg_parser.parse_args()
 
 configs = {}
-configs['width'] = 256
+configs['width'] = 384
 configs['height'] = 256
 configs['batch_size'] = 1
 configs['num_planes'] = 32
