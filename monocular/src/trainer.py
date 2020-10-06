@@ -8,11 +8,12 @@ from .losses import MultiscaleDiscriminator
 
 
 class Trainer(nn.Module):
-    def __init__(self, opts):
+    def __init__(self, opts, cofigs):
         super(Trainer, self).__init__()
         self.configs = opts
         self.synthesis_loss = SynthesisLoss(opts)
         self.get_gan_loss = GANLoss(opts.gan_mode)
+        self.configs = configs
 
     def initialise(self, generator, discriminator=None):
         self.generator = generator
@@ -21,8 +22,11 @@ class Trainer(nn.Module):
     def forward(self, input_data, mode='generator'):
         if mode == 'generator':
             novel_view, alpha = self.generate_fake(input_data)
-            gan_losses = self.compute_generator_loss(
-                novel_view, input_data['target_img'])
+            if self.configs['use_disc']:
+                gan_losses = self.compute_generator_loss(
+                    novel_view, input_data['target_img'])
+            else:
+                gan_losses = {}
             # self.fake = self.to_image(novel_view.data)
             self.fake = novel_view.data
             self.real = input_data['target_img'].data
