@@ -51,11 +51,10 @@ writer = SummaryWriter(tb_path)
 # train_dataset = KittiLoader(configs)
 train_dataset = RealEstateLoader(configs)
 train_loader = DataLoader(dataset=train_dataset,
-<< << << < Updated upstream
-                         batch_size=configs['batch_size'],
-                         shuffle=True,
-                         num_workers=max(1, configs['batch_size'] // 2),
-                         )
+                          batch_size=configs['batch_size'],
+                          shuffle=True,
+                          num_workers=max(1, configs['batch_size'] // 2),
+                          )
 # test_dataset = KittiLoader({**configs, 'mode':'test'})
 # test_loader = DataLoader(dataset=test_dataset,
 #                         batch_size=1,
@@ -65,31 +64,17 @@ train_loader = DataLoader(dataset=train_dataset,
 monocular_nvs_network = StereoMagnification(configs).float().cuda(0)
 gen_optimizer = torch.optim.Adam(
     monocular_nvs_network.parameters(), lr=gan_opts.lr_gen, betas=(0.9, 0.999))
-== == == =
-                          batch_size = configs['batch_size'],
-                          shuffle = True,
-                          num_workers = max(1, configs['batch_size'] // 2),
-                          )
-test_dataset=KittiLoader({**configs, 'mode': 'test'})
-test_loader=DataLoader(dataset = test_dataset,
-                         batch_size=1,
-                         shuffle=False,
-                         )
-
-monocular_nvs_network = StereoMagnification(configs).float().cuda(0)
-gen_optimizer = torch.optim.Adam(
-    monocular_nvs_network.parameters(), lr=gan_opts['lr_gen'], betas=(0.9, 0.999))
->>>>>>> Stashed changes
 gen_optimizer.zero_grad()
 
 
 discriminator = MultiscaleDiscriminator(gan_opts).cuda(0)
-<<<<<<< Updated upstream
-disc_optimizer = torch.optim.Adam(discriminator.parameters(), lr=gan_opts.lr_disc, betas=(0.9, 0.999))
-=======
+<< << << < Updated upstream
+disc_optimizer = torch.optim.Adam(
+    discriminator.parameters(), lr=gan_opts.lr_disc, betas=(0.9, 0.999))
+== == == =
 disc_optimizer = torch.optim.Adam(
     discriminator.parameters(), lr=gan_opts['lr_disc'], betas=(0.9, 0.999))
->>>>>>> Stashed changes
+>>>>>> > Stashed changes
 disc_optimizer.zero_grad()
 
 trainer = Trainer(gan_opts).cuda(0)
@@ -111,13 +96,13 @@ max_val = 1
 for epoch in range(configs['num_epochs']):
     print(f'Epoch number = {epoch}')
     for itr, data in tqdm.tqdm(enumerate(train_loader), total=len(train_loader)):
-        data = {k:v.float().cuda(0) for k,v in data.items()}
+        data = {k: v.float().cuda(0) for k, v in data.items()}
 #        torch.cuda.synchronize()
 #        start = time.time()
         gen_losses = trainer(data, mode='generator')[0]
 #        torch.cuda.synchronize()
 #        print('time 1', time.time() - start)
-        gen_l = sum([v for k,v in gen_losses.items()]).mean()
+        gen_l = sum([v for k, v in gen_losses.items()]).mean()
         # gen_l = gen_losses['Total Loss']  + gen_losses['GAN'] * gan_opts.lamda_gan
         print('gen_l', gen_l.item())
         gen_l.backward()
@@ -128,30 +113,35 @@ for epoch in range(configs['num_epochs']):
         disc_losses = trainer(data, mode='discriminator')
 #        torch.cuda.synchronize()
        # print('time 2', time.time() - start)
-        disc_l = sum([v for k,v in disc_losses.items()]).mean()
+        disc_l = sum([v for k, v in disc_losses.items()]).mean()
         disc_l.backward()
         disc_optimizer.step()
         disc_optimizer.zero_grad()
         novel_view = trainer.fake
-        gen_print = {k:v.item() for k,v in gen_losses.items()}
-        disc_print = {k:v.item() for k,v in disc_losses.items()}
+        gen_print = {k: v.item() for k, v in gen_losses.items()}
+        disc_print = {k: v.item() for k, v in disc_losses.items()}
         print(f'epoch {epoch} iteration {itr}     generator  loss {gen_print}')
         print(f'epoch {epoch} iteration {itr}  discriminator loss {disc_print}')
         if(steps % 300 == 0):
             novel_view = novel_view.data.cpu()
             target = data['target_img'].data.cpu()
             input_img = data['input_img'].data.cpu()
-            torchvision.utils.save_image(novel_view, os.path.join(configs['logging_dir'], str(steps) +'_novel.png'))
+            torchvision.utils.save_image(novel_view, os.path.join(
+                configs['logging_dir'], str(steps) + '_novel.png'))
             # writer.add_image('Novel View', novel_view[0], steps)
             # writer.add_scalar('Scalar', steps, steps)
-            torchvision.utils.save_image(target, os.path.join(configs['logging_dir'], str(steps) +'_target.png'))
+            torchvision.utils.save_image(target, os.path.join(
+                configs['logging_dir'], str(steps) + '_target.png'))
             # writer.add_image('Target View', target[0], steps)
-            torchvision.utils.save_image(input_img, os.path.join(configs['logging_dir'], str(steps) +'_input.png'))
+            torchvision.utils.save_image(input_img, os.path.join(
+                configs['logging_dir'], str(steps) + '_input.png'))
             # writer.add_image('Input View', input_img[0], steps)
         steps += 1
         # exit()
     # writer.export_scalars_to_json(os.path.join(tb_path,'all_scalars.json')
     writer.close()
-    torch.save(monocular_nvs_network.state_dict(), os.path.join(models_dir, str(epoch).zfill(4)+'gen_snapshot.pt'))
-    torch.save(discriminator.state_dict(), os.path.join(models_dir, str(epoch).zfill(4)+'disc_snapshot.pt'))
+    torch.save(monocular_nvs_network.state_dict(), os.path.join(
+        models_dir, str(epoch).zfill(4) + 'gen_snapshot.pt'))
+    torch.save(discriminator.state_dict(), os.path.join(
+        models_dir, str(epoch).zfill(4) + 'disc_snapshot.pt'))
     # here you can do tests every epoch

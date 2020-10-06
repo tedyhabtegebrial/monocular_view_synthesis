@@ -74,7 +74,10 @@ if configs['use_disc']:
     disc_optimizer.zero_grad()
 
 trainer = Trainer(gan_opts).cuda(0)
-trainer.initialise(monocular_nvs_network, disc_optimizer)
+if configs['use_disc']:
+    trainer.initialise(monocular_nvs_network, discriminator)
+else:
+    trainer.initialise(monocular_nvs_network, None)
 
 
 models_dir = os.path.join(configs['logging_dir'], 'models')
