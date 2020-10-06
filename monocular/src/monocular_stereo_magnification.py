@@ -6,7 +6,7 @@ email: "tedyhabtegebrial@gmail.com"
 """
 
 import torch
-import torch
+import time
 import torch.nn as nn
 
 from .mpi import ComputeHomography
@@ -54,7 +54,7 @@ class StereoMagnification(nn.Module):
         t_start = time.time()
         alphas_assoc = self.mpi_net(input_img)
         torch.cuda.synchronize()
-        print('mpi_net:', time.time() - t_start)
+        print('compute alphas:', time.time() - t_start)
         alphas = alphas_assoc[:,
                               :self.configs['num_planes'], :, :].unsqueeze(2)
         assoc = alphas_assoc[:, self.configs['num_planes']:, :, :].view(
@@ -63,12 +63,22 @@ class StereoMagnification(nn.Module):
         torch.cuda.synchronize()
         t_start = time.time()
         mult_layer_features = self.background(input_img)
-
+        torch.cuda.synchronize()
+        print('compute feats:', time.time() - t_start)
+        torch.cuda.synchronize()
+        t_start = time.time()
         h_mats = self.compute_homography(kmats, rmats, tvecs)
-
+        torch.cuda.synchronize()
+        print('compute hom:', time.time() - t_start)
+        t_start = time.time()
         warped_features, alphas = self._get_warped_features(
             h_mats, alphas, assoc, mult_layer_features)
+        torch.cuda.synchronize()
+        print('Warp feats:', time.time() - t_start)
+        t_start = time.time()
         rgb_img = self.reduce_high_features(warped_features)
+        torch.cuda.synchronize()
+        print('feat 2 rgb hom:', time.time() - t_start)
         return rgb_img, alphas
 
     # def forward(self, input_img, kmats, rmats, tvecs):
