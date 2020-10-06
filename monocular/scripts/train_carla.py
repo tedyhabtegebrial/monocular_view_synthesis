@@ -63,13 +63,13 @@ test_loader = DataLoader(dataset=test_dataset,
 
 monocular_nvs_network = SingleViewNetwork_DFKI(configs).float().cuda(0)
 gen_optimizer = torch.optim.Adam(
-    monocular_nvs_network.parameters(), lr=gan_opts['lr_gen'], betas=(0.9, 0.999))
+    monocular_nvs_network.parameters(), lr=gan_opts.lr_gen, betas=(0.9, 0.999))
 gen_optimizer.zero_grad()
 
 if configs['use_disc']:
     discriminator = MultiscaleDiscriminator(gan_opts).cuda(0)
     disc_optimizer = torch.optim.Adam(
-        discriminator.parameters(), lr=gan_opts['lr_disc'], betas=(0.9, 0.999))
+        discriminator.parameters(), lr=gan_opts.lr_disc, betas=(0.9, 0.999))
     disc_optimizer.zero_grad()
 
 trainer = Trainer(gan_opts).cuda(0)
