@@ -91,9 +91,6 @@ for epoch in range(configs['num_epochs']):
     print(f'Epoch number = {epoch}')
     for itr, data in tqdm.tqdm(enumerate(train_loader), total=len(train_loader)):
         data = {k: v.float().cuda(0) for k, v in data.items()}
-        for k, v in data.items():
-            print(k, v.shape)
-        exit()
         gen_losses = trainer(data, mode='generator')
         gen_l = sum([v for k, v in gen_losses.items()]).mean()
         gen_l.backward()
