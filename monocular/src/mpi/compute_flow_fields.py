@@ -1,5 +1,6 @@
 import sys
 import torch
+import time
 import torch.nn as nn
 import torch.nn.functional as F
 from .apply_homography import ApplyHomography
@@ -44,8 +45,12 @@ class ComputeFlowFields(nn.Module):
         h, w = warped_alphas.shape[-2:]
         # b, d, _, h, w = warped_alphas.shape
         mul_plane_grid = self.get_grid(h_mats, h, w)
+        torch.cuda.synchronize()
+        t_start = time.time()
         grid = self.alpha_composite(
             mul_plane_grid, warped_alphas).permute(0, 2, 3, 1)
+        torch.cuda.synchronize()
+        print(' ALpha composition time...........', time.time() - t_start)
         return grid
 
 
