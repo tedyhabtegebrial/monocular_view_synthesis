@@ -8,9 +8,9 @@ from .losses import MultiscaleDiscriminator
 
 
 class Trainer(nn.Module):
-    def __init__(self, opts, cofigs):
+    def __init__(self, opts, configs):
         super(Trainer, self).__init__()
-        self.configs = opts
+        self.opts = opts
         self.synthesis_loss = SynthesisLoss(opts)
         self.get_gan_loss = GANLoss(opts.gan_mode)
         self.configs = configs
@@ -78,7 +78,7 @@ class Trainer(nn.Module):
 
         gen_losses['GAN'] = sum(self.get_gan_loss(
             pred_fake, True, for_discriminator=False))
-        if not self.configs.no_ganFeat_loss:
+        if not self.opts.no_ganFeat_loss:
             num_D = len(pred_fake)
             GAN_Feat_loss = torch.FloatTensor(1).fill_(0).to(device_)
             for i in range(num_D):
@@ -88,7 +88,7 @@ class Trainer(nn.Module):
                 for j in range(num_intermediate_outputs):  # for each layer output
                     unweighted_loss = F.l1_loss(
                         pred_fake[i][j], pred_real[i][j].detach())
-                    GAN_Feat_loss += unweighted_loss * self.configs.lambda_feat / num_D
+                    GAN_Feat_loss += unweighted_loss * self.opts.lambda_feat / num_D
             gen_losses['GAN_Feat'] = sum(GAN_Feat_loss)
         return gen_losses
 
