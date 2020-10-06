@@ -33,7 +33,7 @@ class Trainer(nn.Module):
             synthesis_losses = self.synthesis_loss(
                 novel_view, input_data['target_img'])
             gan_losses.update(synthesis_losses)
-            return gan_losses, novel_view, alpha
+            return gan_losses
             # return synthesis_losses, novel_view, alpha
         elif mode == 'discriminator':
             gan_losses = self.compute_discriminator_loss(input_data)
