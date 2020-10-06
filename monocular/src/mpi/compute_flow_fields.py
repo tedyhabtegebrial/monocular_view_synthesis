@@ -50,9 +50,9 @@ class ComputeFlowFields(nn.Module):
 
 
 class WarpWithFlowFields(nn.Module):
-    def __init__(self):
+    def __init__(self, configs):
         super().__init__()
-        self.compute_flow_fields = ComputeFlowFields()
+        self.compute_flow_fields = ComputeFlowFields(configs)
 
     def forward(self, h_matrix, src_img, warped_alphas):
         b, f, h, w = src_img.shape

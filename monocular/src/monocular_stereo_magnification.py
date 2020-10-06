@@ -37,7 +37,7 @@ class StereoMagnification(nn.Module):
         self.compute_homography = ComputeHomography(configs)
         self.apply_homography = ApplyHomography()
         self.composite = AlphaComposition()
-        self.warp_with_ff = WarpWithFlowFields()
+        self.warp_with_ff = WarpWithFlowFields(configs)
 
     def _get_color_imgs_per_plane(self, fg, bg, weight):
         b, z, _, h, w = weight.shape
