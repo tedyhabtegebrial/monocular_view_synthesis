@@ -17,9 +17,9 @@ from monocular.src import CarlaLoader
 gan_opts = arg_parser.parse_args()
 
 configs = {}
-configs['width'] = 256
+configs['width'] = 384
 configs['height'] = 256
-configs['batch_size'] = 1
+configs['batch_size'] = 6
 configs['num_planes'] = 32
 configs['near_plane'] = 5
 configs['far_plane'] = 20000
@@ -28,7 +28,7 @@ configs['stereo_baseline'] = 0.54
 configs['encoder_ouput_features'] = 64
 configs['input_channels'] = 3
 configs['out_put_channels'] = 3
-configs['num_features'] = 4
+configs['num_features'] = 16
 configs['occlusion_levels'] = 3
 configs['machine_name'] = 'geneva'
 configs['use_disc'] = False
@@ -54,11 +54,13 @@ train_dataset = CarlaLoader(configs, mode='train')
 train_loader = DataLoader(dataset=train_dataset,
                           batch_size=configs['batch_size'],
                           shuffle=True,
-                          num_workers=max(1, configs['batch_size'] // 2),
+                          pin_memory=True,
+                          num_workers=max(1, configs['batch_size']),
                           )
 test_dataset = CarlaLoader(configs, mode='test')
 test_loader = DataLoader(dataset=test_dataset,
                          batch_size=1,
+                         pin_memory=True,
                          shuffle=False,
                          )
 
