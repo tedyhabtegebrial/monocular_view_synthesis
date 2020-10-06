@@ -6,6 +6,7 @@ from .losses import GANLoss
 from .losses import SynthesisLoss
 from .losses import MultiscaleDiscriminator
 
+
 class Trainer(nn.Module):
     def __init__(self, opts):
         super(Trainer, self).__init__()
@@ -13,34 +14,39 @@ class Trainer(nn.Module):
         self.synthesis_loss = SynthesisLoss(opts)
         self.get_gan_loss = GANLoss(opts.gan_mode)
 
-    def initialise(self, generator, discriminator):
+    def initialise(self, generator, discriminator=None):
         self.generator = generator
         self.discriminator = discriminator
+
     def forward(self, input_data, mode='generator'):
-        if mode=='generator':
+        if mode == 'generator':
             novel_view, alpha = self.generate_fake(input_data)
-            gan_losses = self.compute_generator_loss(novel_view, input_data['target_img'])
+            gan_losses = self.compute_generator_loss(
+                novel_view, input_data['target_img'])
             # self.fake = self.to_image(novel_view.data)
             self.fake = novel_view.data
-            self.real = self.to_image(input_data['target_img'].data)
-            synthesis_losses = self.synthesis_loss(novel_view, input_data['target_img'])
+            self.real = input_data['target_img'].data
+            synthesis_losses = self.synthesis_loss(
+                novel_view, input_data['target_img'])
             gan_losses.update(synthesis_losses)
             return gan_losses, novel_view, alpha
             # return synthesis_losses, novel_view, alpha
-        elif mode=='discriminator':
+        elif mode == 'discriminator':
             gan_losses = self.compute_discriminator_loss(input_data)
             return gan_losses
-        elif mode=='inference':
+        elif mode == 'inference':
             with torch.no_grad:
                 if not ('target_img' in input_data.keys()):
                     input_data['target_img'] = None
                 novel_view, alpha = self.generate_fake(input_data)
             return novel_view
         else:
-            raise KeyError('Mode should be in [generator, discriminator, inference]')
+            raise KeyError(
+                'Mode should be in [generator, discriminator, inference]')
 
     def generate_fake(self, input_data):
-        novel_view, alpha = self.generator(input_data['input_img'], input_data['k_mats'], input_data['r_mats'], input_data['t_vecs'])
+        novel_view, alpha = self.generator(
+            input_data['input_img'], input_data['k_mats'], input_data['r_mats'], input_data['t_vecs'])
         return novel_view, alpha
 
     def compute_discriminator_loss(self, data):
@@ -54,8 +60,10 @@ class Trainer(nn.Module):
             fake_image = fake_image.detach()
             fake_image.requires_grad_()
         pred_fake, pred_real = self.discriminate(fake_image, target_img)
-        D_losses['D_Fake'] = self.get_gan_loss(pred_fake, False, for_discriminator=True)
-        D_losses['D_real'] = self.get_gan_loss(pred_real, True, for_discriminator=True)
+        D_losses['D_Fake'] = self.get_gan_loss(
+            pred_fake, False, for_discriminator=True)
+        D_losses['D_real'] = self.get_gan_loss(
+            pred_real, True, for_discriminator=True)
         return D_losses
 
     def compute_generator_loss(self, fake_image, target_img):
@@ -63,7 +71,9 @@ class Trainer(nn.Module):
         gen_losses = {}
         # print('compute_generator_loss:', fake_image.shape, target_img.shape)
         pred_fake, pred_real = self.discriminate(fake_image, target_img)
-        gen_losses['GAN'] = sum(self.get_gan_loss(pred_fake, True, for_discriminator=False))
+
+        gen_losses['GAN'] = sum(self.get_gan_loss(
+            pred_fake, True, for_discriminator=False))
         if not self.configs.no_ganFeat_loss:
             num_D = len(pred_fake)
             GAN_Feat_loss = torch.FloatTensor(1).fill_(0).to(device_)
@@ -71,7 +81,7 @@ class Trainer(nn.Module):
                 # for each discriminator
                 # last output is the final prediction, so we exclude it
                 num_intermediate_outputs = len(pred_fake[i]) - 1
-                for j in range(num_intermediate_outputs): # for each layer output
+                for j in range(num_intermediate_outputs):  # for each layer output
                     unweighted_loss = F.l1_loss(
                         pred_fake[i][j], pred_real[i][j].detach())
                     GAN_Feat_loss += unweighted_loss * self.configs.lambda_feat / num_D
@@ -98,6 +108,6 @@ class Trainer(nn.Module):
         return fake, real
 
     def to_image(self, tensor):
-        img = (tensor+1.0)/2.0
+        img = (tensor + 1.0) / 2.0
         img = img.clamp(min=0.0, max=1.0)
         return img
