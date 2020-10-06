@@ -6,6 +6,7 @@ email: "tedyhabtegebrial@gmail.com"
 """
 
 import torch
+import torch
 import torch.nn as nn
 
 from .mpi import ComputeHomography
@@ -32,7 +33,6 @@ class StereoMagnification(nn.Module):
         self.background = BackgroundNetwork(configs)
         self.reduce_high_features = BackgroundNetwork(configs, reduce=True)
 
-        #        self.mpi_net = ConvNetwork(configs)
         self.compute_blending_weights = ComputeBlendingWeights()
         self.compute_homography = ComputeHomography(configs)
         self.apply_homography = ApplyHomography()
@@ -50,7 +50,10 @@ class StereoMagnification(nn.Module):
     def forward(self, input_img, kmats, rmats, tvecs):
         # print(input_img.shape)
         b, c, h, w = input_img.shape
+        torch.cuda.synchronize()
+        t_start = time.time()
         alphas_assoc = self.mpi_net(input_img)
+        print('mpi_net:', time.time() - t_start)
         alphas = alphas_assoc[:,
                               :self.configs['num_planes'], :, :].unsqueeze(2)
         assoc = alphas_assoc[:, self.configs['num_planes']:, :, :].view(
