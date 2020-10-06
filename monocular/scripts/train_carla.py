@@ -103,10 +103,10 @@ for epoch in range(configs['num_epochs']):
             disc_optimizer.step()
             disc_optimizer.zero_grad()
         novel_view = (trainer.fake + 1.0) / 2.0
-        gen_print = {k: v.item() for k, v in gen_losses.items()}
         disc_print = {k: v.item() for k, v in disc_losses.items()}
         print(f'epoch {epoch} iteration {itr}     generator  loss {gen_print}')
         if configs['use_disc']:
+            gen_print = {k: v.item() for k, v in gen_losses.items()}
             print(
                 f'epoch {epoch} iteration {itr}  discriminator loss {disc_print}')
         if(steps % 200 == 0):
