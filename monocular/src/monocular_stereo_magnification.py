@@ -169,41 +169,18 @@ class StereoMagnification(nn.Module):
         return output_rgb, alphas
 
     def _get_warped_features(self, h_mats, alphas, associations, mult_layer_features):
-        # print(alphas.shape)
         b, d, _, h, w = alphas.shape
         l = associations.shape[2]
-        # torch.cuda.synchronize()
-        # t_start = time.time()
         warped_alphas = self.apply_homography(h_mats, alphas.contiguous())
-        # torch.cuda.synchronize()
-        # print('apply homographies 1:', time.time() - t_start)
-        # torch.cuda.synchronize()
-        # t_start = time.time()
         warped_assoc = self.apply_homography(
             h_mats, associations, grid=self.apply_homography.grid)
-        # torch.cuda.synchronize()
-        # print('apply homographies 2:', time.time() - t_start)
-        # torch.cuda.synchronize()
-        # t_start = time.time()
         warped_mult_layer_features = self.warp_with_ff(
             h_mats, mult_layer_features, warped_alphas).reshape(b, l, self.configs['num_features'], h, w)
-        # torch.cuda.synchronize()
-        # print('warp with ff:', time.time() - t_start)
-        # print('Warped mult layer features', warped_mult_layer_features.shape)
-        # print('Warped assoc shape', warped_assoc.shape)
-        # torch.cuda.synchronize()
-        # t_start = time.time()
         composite_assoc = self.composite(warped_assoc, warped_alphas)
-        # torch.cuda.synchronize()
-        # print('warp composite:', time.time() - t_start)
-        # print('Composite assoc shape', composite_assoc.shape)
         composite_assoc = composite_assoc / \
             torch.sum(composite_assoc, dim=1, keepdim=True).clamp(min=1e-06)
-
         warped_features = warped_mult_layer_features * \
             composite_assoc.unsqueeze(2)
-
-        # output_rgb = self.composite(color_imgs, warped_alphas)
         return warped_features.sum(dim=1, keepdim=False), alphas
 
 
