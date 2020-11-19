@@ -54,7 +54,9 @@ class RealEstateLoader(Dataset):
 
 		src_img = self.transform(Image.open(src_frame))
 		target_img = self.transform(Image.open(target_frame))
-
+		print(target_img.min(), target_img.max())
+		target_img = 2.0*target_img - 1
+		src_img = 2.0*src_img - 1
 		data_dict = {}
 		data_dict['input_img'] = src_img
 		data_dict['target_img'] = target_img
