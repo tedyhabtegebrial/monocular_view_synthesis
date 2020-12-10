@@ -13,6 +13,7 @@ class ComputeFlowFields(nn.Module):
         self.configs = configs
         self.apply_h_mats = ApplyHomography()
         self.alpha_composite = AlphaComposition()
+        #b_size is wrong in the last batch  
         b_size, num_d = configs['batch_size'], configs['num_planes']
         h, w = configs['height'], configs['width']
         self.xy_locations = self.apply_h_mats.get_homogeneous_xy_locations(

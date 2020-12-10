@@ -29,7 +29,7 @@ class Trainer(nn.Module):
             else:
                 gan_losses = {}
             # self.fake = self.to_image(novel_view.data)
-            self.fake = novel_view.data
+            self.fake = self.to_image(novel_view.data)
             self.real = input_data['target_img'].data
             synthesis_losses = self.synthesis_loss(
                 novel_view, input_data['target_img'])

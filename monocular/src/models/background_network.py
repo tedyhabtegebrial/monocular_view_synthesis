@@ -26,7 +26,7 @@ class BackgroundNetwork(nn.Module):
 
 		self.conv_3_0 = nn.Conv2d(in_channels=64, out_channels=128, kernel_size=3, padding=1)
 		self.conv_3_1 = nn.Conv2d(in_channels=128, out_channels=128, kernel_size=3, padding=1)
-		self.bn_3 = nn.BatchNorm2d(118)
+		self.bn_3 = nn.BatchNorm2d(128)
 
 		self.conv_4_0 = nn.Conv2d(in_channels=128, out_channels=256, kernel_size=3, padding=1)
 		self.conv_4_1 = nn.Conv2d(in_channels=256, out_channels=256, kernel_size=3, padding=1)
@@ -71,7 +71,7 @@ class BackgroundNetwork(nn.Module):
 		if(not self.reduce):
 			return torch.sigmoid(output)
 
-		print('background network', output.min(), output.max())
+		print('background network', output.min().item(), output.max().item())
 		return torch.tanh(output)
 
 

@@ -33,5 +33,5 @@ arg_parser.add_argument('--num_upsampling_layers',
 arg_parser.add_argument('--num_out_channels', default=3, type=int)
 arg_parser.add_argument('--losses', type=str, nargs='+', default=['1.0_l1','10.0_content'])
 arg_parser.add_argument('--lamda_gan', type=float, default=1.0, help='weight for gan loss')
-arg_parser.add_argument('--lr_gen', default=0.0004, type=float)
+arg_parser.add_argument('--lr_gen', default=0.0001, type=float)
 arg_parser.add_argument('--lr_disc', default=0.0001, type=float)

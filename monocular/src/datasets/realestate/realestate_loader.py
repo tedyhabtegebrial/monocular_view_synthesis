@@ -6,11 +6,11 @@ import json
 import random
 import torch
 from PIL import Image
-from torchvision.transforms import Compose, ToTensor, Resize
+from torchvision.transforms import Compose, ToTensor, Normalize, Resize
 from math import sqrt
 import torchvision
 
-seed = 42
+seed = 420
 class RealEstateLoader(Dataset):
 	def __init__(self, configs):
 		self.configs = configs
@@ -20,11 +20,16 @@ class RealEstateLoader(Dataset):
 		self.indices = self.indices.reshape((-1,))
 		#print('Paths', glob.glob(os.path.join(self.dir, 'extracted', self.mode, self.indices[0], '*.jpg')))
 		#print('Indices', len(self.indices))
-		#self.indices = self.indices[:1]
+		# self.indices = self.indices[:10]
 		self.frames = [glob.glob(os.path.join(self.dir, 'extracted', self.mode, id + '.txt', '*.jpg')) for id in self.indices]
 		#self.text = [glob.glob(os.path.join(self.dir, 'text_files', self.mode, id + '.txt')) for id in self.indices]
-		#print('ff', len(self.frames))
 		self.frames = np.array([np.array(y) for x in self.frames for y in x])
+		# print(len(self.indices))
+		# exit()
+
+		# self.frames = self.frames[:6]
+		# print('ff', len(self.frames))
+		# exit()
 		#self.text = np.array([np.array(y) for x in self.text for y in x])
 		#print('ff', len(self.frames))
 		self.text_dir = os.path.join(self.dir, 'text_files', self.mode)
@@ -36,13 +41,14 @@ class RealEstateLoader(Dataset):
 		# self.text = [os.path.join(self.dir, 'text_files', self.mode, clip, frame) for clip in self.indices]
 
 		self.min_angle = 5
-		self.max_angle = 30
-		self.min_trans = 0.15
+		self.max_angle = 25
+		self.min_trans = 0.2
 		self.rng = np.random.RandomState(seed)
 
 		self.transform = Compose([
 								Resize((self.configs['width'], self.configs['height'])),
-								ToTensor()
+								ToTensor(),
+								# Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5)),
 								])
 
 		#print(len(self.frames))
@@ -56,8 +62,8 @@ class RealEstateLoader(Dataset):
 		target_img = self.transform(Image.open(target_frame))
 
 		data_dict = {}
-		data_dict['input_img'] = src_img
-		data_dict['target_img'] = target_img
+		data_dict['input_img'] = src_img * 2.0 - 1.0
+		data_dict['target_img'] = target_img * 2.0 - 1.0
 		data_dict['k_mats'] = k_matrix
 		data_dict['r_mats'] = r_rel
 		data_dict['t_vecs'] = t_rel
@@ -102,7 +108,7 @@ class RealEstateLoader(Dataset):
 
 
 		# Chose 15 images within 30 frames of the iniital one
-		target_candidates = self.rng.randint(self.configs['max_baseline'] * 2, size=(self.configs['max_baseline'])) - self.configs['max_baseline']//2 + int(src_idx)
+		target_candidates = self.rng.randint(80, size=(30,)) - 40 + int(src_idx)
 		target_candidates = np.minimum(np.maximum(target_candidates, 0), seq_len - 1)
 
 		#max_offset = min(self.configs['max_baseline'], len(intrinsics))
@@ -128,9 +134,9 @@ class RealEstateLoader(Dataset):
 
 		angles = np.array(angles)
 		translations = np.array(translations)
-
+		# print(translations)
 		mask = target_candidates[(angles < self.max_angle) & (translations > self.min_trans)]
-
+		# print(mask)
 		if(mask.shape[0] > 2):
 			target_idx = mask[self.rng.randint(mask.shape[0])]
 		else:
@@ -189,16 +195,16 @@ if __name__ == '__main__':
 	configs['dataset_root'] = '/home5/anwar/data/realestate10k/'
 	configs['mode'] = 'train'
 	configs['max_baseline'] = 5
-	configs['height'] = 300
-	configs['width'] = 200
+	configs['height'] = 384
+	configs['width'] = 256
 
 	dataset = RealEstateLoader(configs)
 	print(len(dataset))
 	data = dataset.__getitem__(1)
 	print(data['input_img'].shape)
 	c, h, w = data['input_img'].shape
-	torchvision.utils.save_image(data['input_img'].permute([1,2,0]).reshape((c,h,w)), 'permute.png')
-	torchvision.utils.save_image(data['input_img'].reshape((h,w,c)).permute([2,0,1]), 'reshape.png')
+	torchvision.utils.save_image(data['input_img'], 'input_sample.png')
+	torchvision.utils.save_image(data['target_img'], 'target_sample.png')
 
 
 	# for itr, data in enumerate(dataset):

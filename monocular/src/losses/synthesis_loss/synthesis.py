@@ -91,6 +91,7 @@ class PerceptualLoss(nn.Module):
         )  # Set to false so that this part of the network is frozen
         self.criterion = nn.L1Loss()
         self.weights = [1.0 / 32, 1.0 / 16, 1.0 / 8, 1.0 / 4, 1.0]
+        print(self.weights)
 
     def forward(self, pred_img, gt_img):
         gt_fs = self.model(gt_img)

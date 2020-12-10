@@ -12,7 +12,7 @@ class SingleViewNetwork_DFKI(nn.Module):
 
     def __init__(self, configs):
         super(SingleViewNetwork_DFKI, self).__init__()
-
+        self.configs = configs
         self.conv_1_0 = nn.Conv2d(
             in_channels=3, out_channels=32, kernel_size=7, padding=3)
         self.conv_1_1 = nn.Conv2d(
@@ -26,11 +26,11 @@ class SingleViewNetwork_DFKI(nn.Module):
         self.conv_3_0 = nn.Conv2d(
             in_channels=64, out_channels=128, kernel_size=3, padding=1)
         self.conv_3_1 = nn.Conv2d(
-            in_channels=128, out_channels=118, kernel_size=3, padding=1)
-        self.bn_3 = nn.BatchNorm2d(118)
+            in_channels=128, out_channels=128, kernel_size=3, padding=1)
+        self.bn_3 = nn.BatchNorm2d(128)
 
         self.conv_4_0 = nn.Conv2d(
-            in_channels=118, out_channels=256, kernel_size=3, padding=1)
+            in_channels=128, out_channels=256, kernel_size=3, padding=1)
         self.conv_4_1 = nn.Conv2d(
             in_channels=256, out_channels=256, kernel_size=3, padding=1)
         self.bn_4 = nn.BatchNorm2d(256)
@@ -78,13 +78,13 @@ class SingleViewNetwork_DFKI(nn.Module):
         self.bn_11 = nn.BatchNorm2d(512)
 
         self.conv_12_0 = nn.Conv2d(
-            in_channels=512 + 256, out_channels=512, kernel_size=3, padding=1)
+            in_channels=512 + 256, out_channels=256, kernel_size=3, padding=1)
         self.conv_12_1 = nn.Conv2d(
-            in_channels=512, out_channels=512, kernel_size=3, padding=1)
+            in_channels=256, out_channels=256, kernel_size=3, padding=1)
         self.bn_12 = nn.BatchNorm2d(512)
 
         self.conv_13_0 = nn.Conv2d(
-            in_channels=512 + 118, out_channels=128, kernel_size=3, padding=1)
+            in_channels=256 + 128, out_channels=128, kernel_size=3, padding=1)
         self.conv_13_1 = nn.Conv2d(
             in_channels=128, out_channels=128, kernel_size=3, padding=1)
         self.bn_13 = nn.BatchNorm2d(128)
@@ -168,8 +168,11 @@ class SingleViewNetwork_DFKI(nn.Module):
         conv16 = self.bn_16(conv16)
 
         output = self.output(conv16)
-        # print('alpha values:', output[:, :self.configs['num_planes'], :, :].min().item(), output[:, :self.configs['num_planes'], :, :].max().item())
-        return torch.sigmoid(output)
+        print('alpha values:', output[:, :self.configs['num_planes'], :, :].min().item(), output[:, :self.configs['num_planes'], :, :].max().item())
+        output = torch.sigmoid(output)
+        print('alpha values:', output[:, :self.configs['num_planes'], :, :].min().item(), output[:, :self.configs['num_planes'], :, :].max().item())
+        print('all values:', output.min().item(), output.max().item())
+        return output
 
 
 if __name__ == '__main__':

@@ -19,7 +19,7 @@ gan_opts = arg_parser.parse_args()
 configs = {}
 configs['width'] = 384
 configs['height'] = 256
-configs['batch_size'] = 2
+configs['batch_size'] = 6
 configs['num_planes'] = 32
 configs['near_plane'] = 5
 configs['far_plane'] = 20000
@@ -38,11 +38,13 @@ if is_teddy:
     configs['logging_dir'] = '/habtegebrialdata/monocular_nvs/experiment_logs/exp_1_with_bn_new_alpha_comp'
 else:
     configs['dataset_root'] = '/home5/anwar/data/realestate10k'
-    configs['logging_dir'] = '/home5/anwar/data/experiments/exp_SV_GAN_LOSS_1'
+    configs['logging_dir'] = '/home5/anwar/data/experiments/Test_Train_New'
 
 configs['mode'] = 'train'
 configs['max_baseline'] = 26
-configs['num_epochs'] = 10
+configs['num_epochs'] = 30
+configs['use_disc'] = False
+
 
 tb_path = os.path.join(configs['logging_dir'], 'runs')
 os.makedirs(tb_path, exist_ok=True)
@@ -66,15 +68,18 @@ gen_optimizer = torch.optim.Adam(
     monocular_nvs_network.parameters(), lr=gan_opts.lr_gen, betas=(0.9, 0.999))
 gen_optimizer.zero_grad()
 
-
-discriminator = MultiscaleDiscriminator(gan_opts).cuda(0)
-disc_optimizer = torch.optim.Adam(
-    discriminator.parameters(), lr=gan_opts.lr_disc, betas=(0.9, 0.999))
-
-disc_optimizer.zero_grad()
-
 trainer = Trainer(gan_opts, configs).cuda(0)
-trainer.initialise(monocular_nvs_network, discriminator)
+
+if(configs['use_disc']):
+    discriminator = MultiscaleDiscriminator(gan_opts).cuda(0)
+    disc_optimizer = torch.optim.Adam(
+    discriminator.parameters(), lr=gan_opts.lr_disc, betas=(0.9, 0.999))
+    disc_optimizer.zero_grad()
+    trainer.initialise(monocular_nvs_network, discriminator)
+else:
+    trainer.initialise(monocular_nvs_network, None)
+
+
 
 
 models_dir = os.path.join(configs['logging_dir'], 'models')
@@ -84,40 +89,38 @@ print('Logging info: ', configs['logging_dir'])
 
 torch.autograd.set_detect_anomaly(True)
 
-a = 0
-b = 1
-min_val = -1
-max_val = 1
-
 for epoch in range(configs['num_epochs']):
     print(f'Epoch number = {epoch}')
     for itr, data in tqdm.tqdm(enumerate(train_loader), total=len(train_loader)):
         data = {k: v.float().cuda(0) for k, v in data.items()}
 #        torch.cuda.synchronize()
 #        start = time.time()
-        gen_losses = trainer(data, mode='generator')[0]
+        gen_losses = trainer(data, mode='generator')
 #        torch.cuda.synchronize()
 #        print('time 1', time.time() - start)
         gen_l = sum([v for k, v in gen_losses.items()]).mean()
         # gen_l = gen_losses['Total Loss']  + gen_losses['GAN'] * gan_opts.lamda_gan
-        print('gen_l', gen_l.item())
+        # print('gen_l', gen_l.item())
         gen_l.backward()
         gen_optimizer.step()
         gen_optimizer.zero_grad()
 #        torch.cuda.synchronize()
 #        start = time.time()
-        disc_losses = trainer(data, mode='discriminator')
+        gen_print = {k: v.item() for k, v in gen_losses.items()}
+        print(f'epoch {epoch} iteration {itr}     generator  loss {gen_print}')
+
+        if(configs['use_disc']):
+            disc_losses = trainer(data, mode='discriminator')
 #        torch.cuda.synchronize()
        # print('time 2', time.time() - start)
-        disc_l = sum([v for k, v in disc_losses.items()]).mean()
-        disc_l.backward()
-        disc_optimizer.step()
-        disc_optimizer.zero_grad()
+            disc_l = sum([v for k, v in disc_losses.items()]).mean()
+            disc_l.backward()
+            disc_optimizer.step()
+            disc_optimizer.zero_grad()
+            disc_print = {k: v.item() for k, v in disc_losses.items()}
+            print(f'epoch {epoch} iteration {itr}  discriminator loss {disc_print}')
+
         novel_view = trainer.fake
-        gen_print = {k: v.item() for k, v in gen_losses.items()}
-        disc_print = {k: v.item() for k, v in disc_losses.items()}
-        print(f'epoch {epoch} iteration {itr}     generator  loss {gen_print}')
-        print(f'epoch {epoch} iteration {itr}  discriminator loss {disc_print}')
         if(steps % 300 == 0):
             novel_view = novel_view.data.cpu()
             target = data['target_img'].data.cpu()
@@ -138,6 +141,7 @@ for epoch in range(configs['num_epochs']):
     writer.close()
     torch.save(monocular_nvs_network.state_dict(), os.path.join(
         models_dir, str(epoch).zfill(4) + 'gen_snapshot.pt'))
-    torch.save(discriminator.state_dict(), os.path.join(
+    if(configs['use_disc']):
+        torch.save(discriminator.state_dict(), os.path.join(
         models_dir, str(epoch).zfill(4) + 'disc_snapshot.pt'))
     # here you can do tests every epoch
