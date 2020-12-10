@@ -52,7 +52,7 @@ configs['max_baseline'] = 5
 monocular_nvs_network = StereoMagnification(configs).eval()
 ```
 #### Load data in the folowing fashion
-  * ```k_mats```: is the camera intrinsics (right now I am assuming the same matrix for input and target cameras)
+  * ```k_mats```: is the camera intrinsics
   * ```r_mats```: rotation matrix from source camera to the target camera
   * ```t_vecs```: translation vector, it is the source camera center as seen from the target
 ```python
@@ -63,19 +63,19 @@ t_vecs = torch.rand(1,3,1)
 ```
 ```python
 novel_view = monocular_nvs_network(input_img, k_mats, r_mats, t_vecs)
-print(f'Novel VIew Shape== {novel_view.shape}')
+print(f'Novel View Shape== {novel_view.shape}')
 # you should get [B, 3, H, W]
 ```
 
 #### Training on different architectures
 There are two implementations for the network and you can choose by changing the `self.mpi_net` in `monocular_stereo_magnification.py`:
 * SingleViewNetwork: imitates the approach of the SingleViewMPI paper and in order to use it:
-  * Set `self.mpi_net` to `SingleViewNetwork` and use the `forward` function implemented at line `62`
-* SingleViewNetwork_DFKI: implements our approach and in order to use it:
- * set `self.mpi_net` to `SingleViewNetwork_DFKI` and use the `forward` function implemented in line `47`
+  * Set `self.mpi_net` to `SingleViewNetwork` and use the second `forward` function (read documentation in code before function implementation)
+  * SingleViewNetwork_DFKI: implements our approach and in order to use it:
+ * set `self.mpi_net` to `SingleViewNetwork_DFKI` and use the first `forward` (read documentation in code before function implementation)
 
 
 #### Limitations
 
 1. Supports planes which are fronto-parallel to the source camera
-2. The source and target camera intrinsics are assumed to be the same
+<!-- 2. The source and target camera intrinsics are assumed to be the same -->

@@ -47,7 +47,8 @@ class StereoMagnification(nn.Module):
         color_imgs = fg * weight + (1.0 - weight) * bg
         return color_imgs
 
-    def forward2(self, input_img, kmats, rmats, tvecs):
+# Forward function for using single view DFKI
+    def forward(self, input_img, kmats, rmats, tvecs):
         # print(input_img.shape)
         b, c, h, w = input_img.shape
         # torch.cuda.synchronize()
@@ -70,101 +71,103 @@ class StereoMagnification(nn.Module):
         # torch.cuda.synchronize()
         # t_start = time.time()
         h_mats = self.compute_homography(kmats, rmats, tvecs)
-        print('hmats', h_mats.min().item(), h_mats.max().item())
+        # print('hmats', h_mats.min().item(), h_mats.max().item())
         # torch.cuda.synchronize()
         # print('compute hom:', time.time() - t_start)
         # t_start = time.time()
         warped_features, alphas = self._get_warped_features(
             h_mats, alphas, assoc, mult_layer_features)
-        print('warped_features', warped_features.min().item(), warped_features.max().item())
-        print('warped_alphas', alphas.min().item(), alphas.max().item())
+        # print('warped_features', warped_features.min().item(), warped_features.max().item())
+        # print('warped_alphas', alphas.min().item(), alphas.max().item())
         # torch.cuda.synchronize()
         # print('Warp feats:', time.time() - t_start)
         # t_start = time.time()
         rgb_img = self.reduce_high_features(warped_features)
-        print('rgb', rgb_img.min().item(), rgb_img.max().item())
+        # print('rgb', rgb_img.min().item(), rgb_img.max().item())
         # torch.cuda.synchronize()
         # print('feat 2 rgb hom:', time.time() - t_start)
         return rgb_img, alphas
 
-    def forward(self, input_img, kmats, rmats, tvecs):
-        '''The pytorch interface __call__ function. All inputs are tensors
-    #     :param input_img: \\in [B, 3, H, W] where B is batch size, H,W are image dimensions
-    #     :param kmats:     Camera intriciscs  \\in [B, 3, 3]
-    #     :param rmats:     Camera intriciscs  \\in [B, 3, 3] Rotation matrix from source camera to the target camera
-    #     :param tvecs:     Translation vector  \\in [B, 3, 1] When the source camera center is expressed in the target camera coordinate frame
-    #     :return pred_img: novel view color image
-    #     :return alphas:   per-plane alphas, returned so that we can see what the scene representation looks like
-        '''
-        # output of net is [B,H,W,C]
-        mpi_alphas_bg_img = self.mpi_net(input_img)
-        # b, h, w, c = mpi_alphas_bg_img.shape
-        alpha = mpi_alphas_bg_img.permute(
-            [0, 3, 1, 2])[:, :-3, ...].unsqueeze(-1)
-        layer_alpha = torch.cat(
-            [torch.ones_like(alpha[:, 0:1]), alpha], axis=1)
-        # b, c, h, w = input_img.shape
-        fg_img = input_img.unsqueeze(1)
-        bg_img = mpi_alphas_bg_img[:, :, :, -
-                                   3:].permute([0, 3, 1, 2]).unsqueeze(1)
-        # create blending weight from alpha values by exclusive reversed cumulative product
-        # blending weights shape is [B, D, 1, H, W]
-        blending_weights = self.compute_blending_weights(layer_alpha)
-        # print('blending_weights', blending_weights.shape)
-        # print('fg_img', fg_img.shape)
-        # print('bg_img', bg_img.shape)
-        # flipped_alphas = torch.flip(layer_alpha, dims=[1])
-        # ones_ = torch.ones_like(flipped_alphas)[:,:1,...]
-        # blending_weights = torch.cumprod(1.0 - flipped_alphas, axis = 1)[:,:-1,...]
-        # blending_weights = torch.cat([ones_, blending_weights], axis=1)
-        # blending_weights = torch.flip(blending_weights, dims=[1])
 
-        layer_rgb = blending_weights * fg_img + \
-            (1.0 - blending_weights) * bg_img
-        # layers = torch.cat([layer_rgb, layer_alpha], axis = -1)
-        h_mats = self.compute_homography(kmats, rmats, tvecs)
-
-        # b, l, h, w, c = layer_alpha.shape
-        layer_alpha = layer_alpha.permute([0, 1, 4, 2, 3])
-        # b, l, h, w, c = layer_rgb.shape
-        # layer_rgb = layer_rgb.permute([0,1,4,2,3])
-
-        #print('layer alpha', layer_alpha.shape)
-        #print('layer rgb', layer_rgb.shape)
-        rgb_img, alphas = self._render_rgb(h_mats, layer_alpha, layer_rgb)
-
-        if self.training:
-            return rgb_img, alphas
-        else:
-            return rgb_img
-         #b, d, h, w = mpi_alphas_bg_img.shape
-         # print('mpi_alphas_bg_img', mpi_alphas_bg_img.shape)
-         #ones_ = torch.ones(b, 1, 1, h, w).to(mpi_alphas_bg_img.device)
-
-         #mpi_alpha = mpi_alphas_bg_img[:, :self.configs['num_planes']-1, :, :].unsqueeze(2)
-         #mpi_alpha = torch.cat([mpi_alpha, ones_], dim=1)
-
-         #blending_weights = mpi_alphas_bg_img[:, self.configs['num_planes']-1:-3, :, :].unsqueeze(2)
-         #blending_weights = torch.cat([ones_.clone(), blending_weights], dim=1)
-
-         #bg_img = mpi_alphas_bg_img[:, -3:, :, :]
-         # print('mpi_alpha', mpi_alpha.shape)
-         # print('blending_weights', blending_weights.shape)
-         # print('bg_img', bg_img.shape)
-         #blending_weights = self.ComputeBlendingWeights(mpi_alpha)
-
-    #      mpi_alpha, blending_weights, bg_img = self.mpi_net(input_img)
-    #      h_mats = self.compute_homography(kmats, rmats, tvecs)
-    #      fg_img = input_img
-    #      # here mistake
-    #      color_imgs_ref_cam = self._get_color_imgs_per_plane(fg_img, bg_img, blending_weights)
-    #      pred_img, alphas = self._render_rgb(h_mats, mpi_alpha, color_imgs_ref_cam)
-    # #     # print(tvecs)
-    #
-    #      if self.training:
-    #          return pred_img, alphas
-    #      else:
-    #          return pred_img
+# # Forward function for using single view
+#     def forward(self, input_img, kmats, rmats, tvecs):
+#         '''The pytorch interface __call__ function. All inputs are tensors
+#     #     :param input_img: \\in [B, 3, H, W] where B is batch size, H,W are image dimensions
+#     #     :param kmats:     Camera intriciscs  \\in [B, 3, 3]
+#     #     :param rmats:     Camera intriciscs  \\in [B, 3, 3] Rotation matrix from source camera to the target camera
+#     #     :param tvecs:     Translation vector  \\in [B, 3, 1] When the source camera center is expressed in the target camera coordinate frame
+#     #     :return pred_img: novel view color image
+#     #     :return alphas:   per-plane alphas, returned so that we can see what the scene representation looks like
+#         '''
+#         # output of net is [B,H,W,C]
+#         mpi_alphas_bg_img = self.mpi_net(input_img)
+#         # b, h, w, c = mpi_alphas_bg_img.shape
+#         alpha = mpi_alphas_bg_img.permute(
+#             [0, 3, 1, 2])[:, :-3, ...].unsqueeze(-1)
+#         layer_alpha = torch.cat(
+#             [torch.ones_like(alpha[:, 0:1]), alpha], axis=1)
+#         # b, c, h, w = input_img.shape
+#         fg_img = input_img.unsqueeze(1)
+#         bg_img = mpi_alphas_bg_img[:, :, :, -
+#                                    3:].permute([0, 3, 1, 2]).unsqueeze(1)
+#         # create blending weight from alpha values by exclusive reversed cumulative product
+#         # blending weights shape is [B, D, 1, H, W]
+#         blending_weights = self.compute_blending_weights(layer_alpha)
+#         # print('blending_weights', blending_weights.shape)
+#         # print('fg_img', fg_img.shape)
+#         # print('bg_img', bg_img.shape)
+#         # flipped_alphas = torch.flip(layer_alpha, dims=[1])
+#         # ones_ = torch.ones_like(flipped_alphas)[:,:1,...]
+#         # blending_weights = torch.cumprod(1.0 - flipped_alphas, axis = 1)[:,:-1,...]
+#         # blending_weights = torch.cat([ones_, blending_weights], axis=1)
+#         # blending_weights = torch.flip(blending_weights, dims=[1])
+#
+#         layer_rgb = blending_weights * fg_img + \
+#             (1.0 - blending_weights) * bg_img
+#         # layers = torch.cat([layer_rgb, layer_alpha], axis = -1)
+#         h_mats = self.compute_homography(kmats, rmats, tvecs)
+#
+#         # b, l, h, w, c = layer_alpha.shape
+#         layer_alpha = layer_alpha.permute([0, 1, 4, 2, 3])
+#         # b, l, h, w, c = layer_rgb.shape
+#         # layer_rgb = layer_rgb.permute([0,1,4,2,3])
+#
+#         #print('layer alpha', layer_alpha.shape)
+#         #print('layer rgb', layer_rgb.shape)
+#         rgb_img, alphas = self._render_rgb(h_mats, layer_alpha, layer_rgb)
+#
+#         if self.training:
+#             return rgb_img, alphas
+#         else:
+#             return rgb_img
+#          #b, d, h, w = mpi_alphas_bg_img.shape
+#          # print('mpi_alphas_bg_img', mpi_alphas_bg_img.shape)
+#          #ones_ = torch.ones(b, 1, 1, h, w).to(mpi_alphas_bg_img.device)
+#
+#          #mpi_alpha = mpi_alphas_bg_img[:, :self.configs['num_planes']-1, :, :].unsqueeze(2)
+#          #mpi_alpha = torch.cat([mpi_alpha, ones_], dim=1)
+#
+#          #blending_weights = mpi_alphas_bg_img[:, self.configs['num_planes']-1:-3, :, :].unsqueeze(2)
+#          #blending_weights = torch.cat([ones_.clone(), blending_weights], dim=1)
+#
+#          #bg_img = mpi_alphas_bg_img[:, -3:, :, :]
+#          # print('mpi_alpha', mpi_alpha.shape)
+#          # print('blending_weights', blending_weights.shape)
+#          # print('bg_img', bg_img.shape)
+#          #blending_weights = self.ComputeBlendingWeights(mpi_alpha)
+#
+#     #      mpi_alpha, blending_weights, bg_img = self.mpi_net(input_img)
+#     #      h_mats = self.compute_homography(kmats, rmats, tvecs)
+#     #      fg_img = input_img
+#     #      # here mistake
+#     #      color_imgs_ref_cam = self._get_color_imgs_per_plane(fg_img, bg_img, blending_weights)
+#     #      pred_img, alphas = self._render_rgb(h_mats, mpi_alpha, color_imgs_ref_cam)
+#     # #     # print(tvecs)
+#     #
+#     #      if self.training:
+#     #          return pred_img, alphas
+#     #      else:
+#     #          return pred_img
 
     def _render_rgb(self, h_mats, mpi_alpha_seg, color_imgs_ref_cam):
         # alphas = torch.sigmoid(mpi_alpha_seg)
